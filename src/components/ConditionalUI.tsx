@@ -1,10 +1,9 @@
-import { useState, useCallback } from "react";
-import Box from "@mui/material/Box";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Input } from "./Input";
 import { Output } from "./Output";
-import { parseCondition } from "../fuzzy/parse";
-import { DEFAULT_OPERATORS } from "../operators";
-import type { ConditionalUIProps, ParsedCondition } from "../types";
+import { ConditionParser } from "../fuzzy/parser";
+import { DEFAULT_OPERATORS } from "../condition-structure";
+import type { ConditionalUIProps, ConditionGroup, ParsedCondition } from "../types";
 
 export function ConditionalUI({
     fields,
@@ -12,10 +11,20 @@ export function ConditionalUI({
     values,
     value,
     onChange,
+    onConditionsChange,
 }: ConditionalUIProps) {
     const [internal, setInternal] = useState("");
-    const [parsed, setParsed] = useState<ParsedCondition | null>(null);
+    const [groups, setGroups] = useState<ConditionGroup[]>([]);
     const text = value ?? internal;
+
+    const parser = useMemo(
+        () => new ConditionParser(fields, operators, values),
+        [fields, operators, values],
+    );
+
+    useEffect(() => {
+        onConditionsChange?.(groups);
+    }, [groups, onConditionsChange]);
 
     const handleChange = useCallback(
         (next: string) => {
@@ -26,19 +35,51 @@ export function ConditionalUI({
     );
 
     const handleSubmit = useCallback(() => {
-        setParsed(parseCondition(text, fields, operators));
-    }, [text, fields, operators]);
+        const group = parser.parseCompound(text);
+        if (group) {
+            setGroups((prev) => [...prev, group]);
+            if (value === undefined) setInternal("");
+            onChange?.("");
+        }
+    }, [text, parser, value, onChange]);
+
+    const getSuggestion = useCallback(
+        (text: string) => parser.getSuggestion(text),
+        [parser],
+    );
+
+    const handleGroupsChange = useCallback((newGroups: ConditionGroup[]) => {
+        setGroups(newGroups);
+    }, []);
+
+    const handleUpdateCondition = useCallback(
+        (groupId: string, entryId: string, condition: ParsedCondition) => {
+            setGroups((prev) =>
+                prev.map((g) => {
+                    if (g.id !== groupId) return g;
+                    return {
+                        ...g,
+                        entries: g.entries.map((e) =>
+                            e.id === entryId ? { ...e, condition } : e,
+                        ),
+                    };
+                }),
+            );
+        },
+        [],
+    );
 
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-            <Input value={text} onChange={handleChange} onSubmit={handleSubmit} />
+        <div className="rcui-root">
+            <Input value={text} onChange={handleChange} onSubmit={handleSubmit} getSuggestion={getSuggestion} />
             <Output
-                parsed={parsed}
+                groups={groups}
                 fields={fields}
                 operators={operators}
                 values={values}
-                onUpdate={setParsed}
+                onGroupsChange={handleGroupsChange}
+                onUpdateCondition={handleUpdateCondition}
             />
-        </Box>
+        </div>
     );
 }

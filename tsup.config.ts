@@ -7,5 +7,6 @@ export default defineConfig({
     splitting: false,
     sourcemap: true,
     clean: true,
-    external: ["react", "react-dom", "@mui/material", "@emotion/react", "@emotion/styled"],
+    external: ["react", "react-dom", "@mui/material", "@mui/icons-material", "@emotion/react", "@emotion/styled", "@dnd-kit/core", "@dnd-kit/sortable", "@dnd-kit/utilities", "debug"],
+    onSuccess: "cp assets/styles.css dist/styles.css",
 });

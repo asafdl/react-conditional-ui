@@ -1,0 +1,184 @@
+/* react-conditional-ui default styles */
+
+/* ── Root ── */
+.rcui-root {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ── Input ── */
+.rcui-input .MuiOutlinedInput-root {
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.rcui-input .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+    border-color: var(--rcui-primary, #7c8aff);
+}
+
+/* ── Output Row ── */
+.rcui-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-radius: 4px;
+    padding: 4px;
+    transition: background-color 0.15s, box-shadow 0.15s;
+}
+
+.rcui-row--over {
+    background-color: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 0 2px var(--rcui-primary, #7c8aff);
+}
+
+/* ── Drag handle ── */
+.rcui-drag-handle {
+    display: flex;
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* ── Chips ── */
+.rcui-chip-field {
+    font-weight: 500;
+    background-color: rgba(124, 138, 255, 0.15) !important;
+    border: 1px solid rgba(124, 138, 255, 0.4) !important;
+}
+
+.rcui-chip-field:hover {
+    background-color: rgba(124, 138, 255, 0.25) !important;
+}
+
+.rcui-chip-field--error {
+    font-weight: 500;
+    border: 1px solid !important;
+}
+
+.rcui-chip-operator {
+    font-weight: 500;
+    background-color: rgba(192, 132, 252, 0.15) !important;
+    border: 1px solid rgba(192, 132, 252, 0.4) !important;
+}
+
+.rcui-chip-operator:hover {
+    background-color: rgba(192, 132, 252, 0.25) !important;
+}
+
+.rcui-chip-operator--error {
+    font-weight: 500;
+    border: 1px solid !important;
+}
+
+.rcui-chip-value {
+    font-weight: 500;
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+.rcui-chip-value:hover {
+    background-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* ── Connector chip ── */
+.rcui-connector {
+    display: flex;
+    justify-content: center;
+    padding: 2px 0;
+}
+
+.rcui-connector-chip {
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.05em;
+    background-color: rgba(103, 232, 249, 0.12) !important;
+    color: var(--rcui-info, #67e8f9) !important;
+    border: 1px solid rgba(103, 232, 249, 0.3) !important;
+}
+
+.rcui-connector-chip--clickable {
+    cursor: pointer;
+}
+
+.rcui-connector-chip--clickable:hover {
+    background-color: rgba(103, 232, 249, 0.22) !important;
+}
+
+/* ── Drag overlay ── */
+.rcui-overlay {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    opacity: 0.9;
+}
+
+/* ── Group paper ── */
+.rcui-group-paper {
+    padding: 12px;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    background-color: rgba(255, 255, 255, 0.02) !important;
+    backdrop-filter: blur(8px);
+    transition: border-color 0.15s, background-color 0.15s;
+}
+
+.rcui-group-paper--over {
+    border-color: var(--rcui-primary, #7c8aff) !important;
+    background-color: rgba(124, 138, 255, 0.06) !important;
+}
+
+/* ── Single-row droppable wrapper ── */
+.rcui-droppable-single {
+    border-radius: 4px;
+    transition: background-color 0.15s, outline-color 0.15s;
+}
+
+.rcui-droppable-single--over {
+    background-color: rgba(255, 255, 255, 0.06);
+    outline: 2px solid var(--rcui-primary, #7c8aff);
+}
+
+/* ── Ungroup drop zone ── */
+.rcui-drop-zone {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 48px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 2px dashed rgba(255, 255, 255, 0.06);
+    background-color: transparent;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.rcui-drop-zone--over {
+    border-color: var(--rcui-primary, #7c8aff);
+    background-color: rgba(124, 138, 255, 0.06);
+}
+
+/* ── Ghost text autocomplete ── */
+.rcui-input-wrapper {
+    position: relative;
+}
+
+.rcui-ghost {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    padding: 8.5px 0;
+    margin-left: 14px;
+    pointer-events: none;
+    font: inherit;
+    font-size: 0.875rem;
+    line-height: 1.4375em;
+    letter-spacing: 0.00938em;
+    color: rgba(255, 255, 255, 0.25);
+    white-space: pre;
+}
+
+/* ── Popover value edit ── */
+.rcui-popover-value-edit {
+    padding: 12px;
+}

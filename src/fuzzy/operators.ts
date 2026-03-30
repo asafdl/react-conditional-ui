@@ -1,4 +1,4 @@
-import type { OperatorOption } from "./types";
+import type { OperatorOption } from "../types";
 
 export const DEFAULT_OPERATORS: OperatorOption[] = [
     {

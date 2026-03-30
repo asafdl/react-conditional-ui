@@ -1,32 +1,32 @@
-import { useState } from "react";
 import Chip from "@mui/material/Chip";
-import Popover from "@mui/material/Popover";
-import List from "@mui/material/List";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemText from "@mui/material/ListItemText";
-import Box from "@mui/material/Box";
-import TextField from "@mui/material/TextField";
+import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import type { FieldOption, OperatorOption, ParsedCondition } from "../types";
-
-type ChipTarget = "field" | "operator" | "value";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useDroppable } from "@dnd-kit/core";
+import { OutputRow } from "./OutputRow";
+import { ConnectorChip } from "./ConnectorChip";
+import { OutputDndContext, UNGROUP_ZONE_ID } from "./OutputDndContext";
+import type { FieldOption, OperatorOption, ParsedCondition, ConditionGroup, ConditionEntry } from "../types";
+import type { GroupMutations } from "./OutputDndContext";
 
 export type OutputProps = {
-    parsed: ParsedCondition | null;
+    groups: ConditionGroup[];
     fields: FieldOption[];
     operators: OperatorOption[];
     values?: Record<string, FieldOption[]>;
-    onUpdate: (parsed: ParsedCondition) => void;
+    onGroupsChange?: (groups: ConditionGroup[]) => void;
+    onUpdateCondition?: (groupId: string, entryId: string, condition: ParsedCondition) => void;
 };
 
-export function Output({ parsed, fields, operators, values, onUpdate }: OutputProps) {
-    const [popover, setPopover] = useState<{
-        target: ChipTarget;
-        anchor: HTMLElement;
-    } | null>(null);
-    const [valueEdit, setValueEdit] = useState("");
-
-    if (!parsed) {
+export function Output({
+    groups,
+    fields,
+    operators,
+    values,
+    onGroupsChange,
+    onUpdateCondition,
+}: OutputProps) {
+    if (groups.length === 0) {
         return (
             <Typography variant="body2" color="text.secondary">
                 Parsed condition will appear here…
@@ -34,108 +34,191 @@ export function Output({ parsed, fields, operators, values, onUpdate }: OutputPr
         );
     }
 
-    const openPopover = (target: ChipTarget, anchor: HTMLElement) => {
-        setPopover({ target, anchor });
-        if (target === "value") setValueEdit(parsed.value ?? "");
-    };
+    const editable = !!onGroupsChange;
 
-    const closePopover = () => setPopover(null);
+    if (!editable) {
+        return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {groups.map((group) => (
+                    <GroupCard key={group.id} group={group} fields={fields} operators={operators} values={values} />
+                ))}
+            </div>
+        );
+    }
 
-    const updateField = (target: ChipTarget, newValue: string) => {
-        onUpdate({ ...parsed, [target]: newValue });
-        closePopover();
-    };
-
-    const fieldLabel = fields.find((f) => f.value === parsed.field)?.label ?? parsed.field;
-    const operatorLabel =
-        operators.find((o) => o.value === parsed.operator)?.label ?? parsed.operator;
-    const fieldValues = values?.[parsed.field];
+    const renderOverlay = (entry: ConditionEntry) => (
+        <div className="rcui-overlay">
+            <Chip
+                label={entry.condition.field.label}
+                size="small"
+                className="rcui-chip-field"
+            />
+            <Chip
+                label={entry.condition.operator.label}
+                size="small"
+                className="rcui-chip-operator"
+            />
+            <Chip
+                label={entry.condition.value.label || "…"}
+                size="small"
+                className="rcui-chip-value"
+            />
+        </div>
+    );
 
     return (
-        <>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-                <Chip
-                    label={fieldLabel}
-                    color="primary"
-                    variant="outlined"
-                    onClick={(e) => openPopover("field", e.currentTarget)}
-                />
-                <Chip
-                    label={operatorLabel}
-                    color="secondary"
-                    variant="outlined"
-                    onClick={(e) => openPopover("operator", e.currentTarget)}
-                />
-                <Chip
-                    label={parsed.value || "…"}
-                    color="default"
-                    variant="outlined"
-                    onClick={(e) => openPopover("value", e.currentTarget)}
-                />
-            </Box>
-
-            <Popover
-                open={!!popover}
-                anchorEl={popover?.anchor}
-                onClose={closePopover}
-                anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-            >
-                {popover?.target === "field" && (
-                    <List dense>
-                        {fields.map((f) => (
-                            <ListItemButton
-                                key={f.value}
-                                selected={f.value === parsed.field}
-                                onClick={() => updateField("field", f.value)}
-                            >
-                                <ListItemText primary={f.label} />
-                            </ListItemButton>
-                        ))}
-                    </List>
-                )}
-
-                {popover?.target === "operator" && (
-                    <List dense>
-                        {operators.map((op) => (
-                            <ListItemButton
-                                key={op.value}
-                                selected={op.value === parsed.operator}
-                                onClick={() => updateField("operator", op.value)}
-                            >
-                                <ListItemText primary={op.label} />
-                            </ListItemButton>
-                        ))}
-                    </List>
-                )}
-
-                {popover?.target === "value" &&
-                    (fieldValues ? (
-                        <List dense>
-                            {fieldValues.map((v) => (
-                                <ListItemButton
-                                    key={v.value}
-                                    selected={v.value === parsed.value}
-                                    onClick={() => updateField("value", v.value)}
-                                >
-                                    <ListItemText primary={v.label} />
-                                </ListItemButton>
-                            ))}
-                        </List>
-                    ) : (
-                        <Box sx={{ p: 1.5 }}>
-                            <TextField
-                                size="small"
-                                autoFocus
-                                value={valueEdit}
-                                onChange={(e) => setValueEdit(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") updateField("value", valueEdit);
-                                }}
-                                placeholder="Enter value"
-                            />
-                        </Box>
+        <OutputDndContext groups={groups} onGroupsChange={onGroupsChange} renderOverlay={renderOverlay}>
+            {(mutations) => (
+                <UngroupDropZone>
+                    {groups.map((group) => (
+                        <DroppableGroup
+                            key={group.id}
+                            group={group}
+                            fields={fields}
+                            operators={operators}
+                            values={values}
+                            mutations={mutations}
+                            onUpdateCondition={onUpdateCondition}
+                        />
                     ))}
-            </Popover>
-        </>
+                </UngroupDropZone>
+            )}
+        </OutputDndContext>
     );
+}
+
+function DroppableGroup({
+    group,
+    fields,
+    operators,
+    values,
+    mutations,
+    onUpdateCondition,
+}: {
+    group: ConditionGroup;
+    fields: FieldOption[];
+    operators: OperatorOption[];
+    values?: Record<string, FieldOption[]>;
+    mutations: GroupMutations;
+    onUpdateCondition?: (groupId: string, entryId: string, condition: ParsedCondition) => void;
+}) {
+    const allIds = group.entries.map((e) => e.id);
+    const isMulti = group.entries.length > 1;
+    const { setNodeRef, isOver } = useDroppable({ id: `group:${group.id}` });
+
+    const content = (
+        <SortableContext items={allIds} strategy={verticalListSortingStrategy}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {group.entries.map((entry, idx) => (
+                    <div key={entry.id}>
+                        {idx > 0 && (
+                            <ConnectorChip
+                                connector={entry.connector}
+                                onToggle={() => mutations.toggleConnector(group.id, entry.id)}
+                            />
+                        )}
+                        <OutputRow
+                            id={entry.id}
+                            condition={entry.condition}
+                            fields={fields}
+                            operators={operators}
+                            values={values}
+                            onUpdate={
+                                onUpdateCondition
+                                    ? (c) => onUpdateCondition(group.id, entry.id, c)
+                                    : undefined
+                            }
+                            onRemove={() => mutations.removeEntry(group.id, entry.id)}
+                        />
+                    </div>
+                ))}
+            </div>
+        </SortableContext>
+    );
+
+    if (isMulti) {
+        const paperClass = [
+            "rcui-group-paper",
+            isOver ? "rcui-group-paper--over" : "",
+        ]
+            .filter(Boolean)
+            .join(" ");
+
+        return (
+            <Paper ref={setNodeRef} variant="outlined" className={paperClass}>
+                {content}
+            </Paper>
+        );
+    }
+
+    const singleClass = [
+        "rcui-droppable-single",
+        isOver ? "rcui-droppable-single--over" : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
+
+    return (
+        <div ref={setNodeRef} className={singleClass}>
+            {content}
+        </div>
+    );
+}
+
+function UngroupDropZone({ children }: { children: React.ReactNode }) {
+    const { setNodeRef, isOver } = useDroppable({ id: UNGROUP_ZONE_ID });
+
+    const zoneClass = [
+        "rcui-drop-zone",
+        isOver ? "rcui-drop-zone--over" : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
+
+    return (
+        <div ref={setNodeRef} className={zoneClass}>
+            {children}
+        </div>
+    );
+}
+
+function GroupCard({
+    group,
+    fields,
+    operators,
+    values,
+}: {
+    group: ConditionGroup;
+    fields: FieldOption[];
+    operators: OperatorOption[];
+    values?: Record<string, FieldOption[]>;
+}) {
+    const isMulti = group.entries.length > 1;
+    const content = (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {group.entries.map((entry, idx) => (
+                <div key={entry.id}>
+                    {idx > 0 && <ConnectorChip connector={entry.connector} />}
+                    <OutputRow
+                        id={entry.id}
+                        condition={entry.condition}
+                        fields={fields}
+                        operators={operators}
+                        values={values}
+                        draggable={false}
+                    />
+                </div>
+            ))}
+        </div>
+    );
+
+    if (isMulti) {
+        return (
+            <Paper variant="outlined" className="rcui-group-paper">
+                {content}
+            </Paper>
+        );
+    }
+
+    return content;
 }
