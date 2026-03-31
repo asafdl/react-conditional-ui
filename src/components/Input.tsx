@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useMemo, useLayoutEffect, useState, useRef } from "react";
 import TextField from "@mui/material/TextField";
 
 export type InputProps = {
@@ -7,7 +7,6 @@ export type InputProps = {
     onSubmit: () => void;
     placeholder?: string;
     getSuggestion?: (text: string) => { completion: string; display: string } | null;
-    debounceMs?: number;
 };
 
 export function Input({
@@ -16,42 +15,24 @@ export function Input({
     onSubmit,
     placeholder = "e.g. age greater than 18",
     getSuggestion,
-    debounceMs = 16,
 }: InputProps) {
-    const [ghost, setGhost] = useState("");
-    const [ghostLeft, setGhostLeft] = useState(0);
-    const timerRef = useRef<ReturnType<typeof setTimeout>>();
     const inputRef = useRef<HTMLInputElement>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const [ghostLeft, setGhostLeft] = useState(0);
 
-    const measureTextWidth = useCallback((text: string): number => {
-        const el = inputRef.current;
-        if (!el) return 0;
+    const ghost = useMemo(() => {
+        if (!getSuggestion || !value) return null;
+        const result = getSuggestion(value);
+        return result ? result.completion : null;
+    }, [value, getSuggestion]);
+
+    useLayoutEffect(() => {
+        if (!ghost || !inputRef.current) return;
         if (!canvasRef.current) canvasRef.current = document.createElement("canvas");
         const ctx = canvasRef.current.getContext("2d")!;
-        ctx.font = getComputedStyle(el).font;
-        return ctx.measureText(text).width;
-    }, []);
-
-    useEffect(() => {
-        if (!getSuggestion || !value) {
-            setGhost("");
-            return;
-        }
-
-        setGhost("");
-        timerRef.current = setTimeout(() => {
-            const result = getSuggestion(value);
-            if (result) {
-                setGhost(result.completion);
-                setGhostLeft(measureTextWidth(value));
-            } else {
-                setGhost("");
-            }
-        }, debounceMs);
-
-        return () => clearTimeout(timerRef.current);
-    }, [value, getSuggestion, debounceMs, measureTextWidth]);
+        ctx.font = getComputedStyle(inputRef.current).font;
+        setGhostLeft(ctx.measureText(value).width);
+    }, [ghost, value]);
 
     const handleChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,7 +44,6 @@ export function Input({
     const acceptGhost = useCallback(() => {
         if (ghost) {
             onChange(value + ghost);
-            setGhost("");
         }
     }, [ghost, value, onChange]);
 
@@ -95,7 +75,7 @@ export function Input({
                 className="rcui-input"
                 inputRef={inputRef}
             />
-            {ghost && value && (
+            {ghost && (
                 <span
                     className="rcui-ghost"
                     aria-hidden="true"
