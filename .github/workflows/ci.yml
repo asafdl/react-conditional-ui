@@ -28,11 +28,24 @@ jobs:
       - name: Test with coverage
         run: npm run test:coverage
 
-      - name: Upload coverage to Codecov
-        if: always()
-        uses: codecov/codecov-action@v4
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          COVERAGE=$(npx coverage-summary-json 2>/dev/null || node -e "
+            const r = require('./coverage/coverage-summary.json');
+            console.log(r.total.lines.pct);
+          ")
+          echo "pct=$COVERAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Create coverage badge
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        if: github.ref == 'refs/heads/master'
         with:
-          files: ./coverage/lcov.info
-          fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: ${{ vars.COVERAGE_GIST_ID }}
+          filename: coverage.json
+          label: coverage
+          message: "${{ steps.coverage.outputs.pct }}%"
+          valColorRange: ${{ steps.coverage.outputs.pct }}
+          maxColorRange: 100
+          minColorRange: 0
