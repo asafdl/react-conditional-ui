@@ -17,8 +17,8 @@ const fieldsWithConfig: FieldOption[] = [
         value: "status",
         fieldValues: [
             { label: "Ready", value: "ready" },
-            { label: "Not Ready", value: "not_ready" },
-            { label: "In Progress", value: "in_progress" },
+            { label: "Progressing", value: "progressing" },
+            { label: "Complete", value: "complete" },
         ],
     },
     {
@@ -555,10 +555,10 @@ describe("ConditionParser with fieldValues", () => {
         expect(result.value.value).toBe("ready");
     });
 
-    it("fuzzy matches value with 'in progress' fieldValue", () => {
-        const result = p.parse("status is in prog")!;
+    it("fuzzy matches value with 'progressing' fieldValue", () => {
+        const result = p.parse("status is prog")!;
         expect(result.value.isValid).toBe(true);
-        expect(result.value.value).toBe("in_progress");
+        expect(result.value.value).toBe("progressing");
     });
 
     it("freeform value on field without fieldValues", () => {
@@ -669,6 +669,104 @@ describe("ConditionParser.getSuggestion", () => {
             expect(s).not.toBeNull();
             expect(s!.display).toBe("High");
             expect(s!.completion).toBe("gh");
+        });
+    });
+
+    describe("suggestions after fuzzy-matched field/operator", () => {
+        it("suggests operator after fuzzy-matched field", () => {
+            const s = p.getSuggestion("stauts equa");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("equals");
+            expect(s!.completion).toBe("ls");
+        });
+
+        it("suggests value after fuzzy-matched operator", () => {
+            const s = p.getSuggestion("status equls read");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("Ready");
+            expect(s!.completion).toBe("y");
+        });
+
+        it("suggests value after fuzzy-matched field", () => {
+            const s = p.getSuggestion("stauts is re");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("Ready");
+            expect(s!.completion).toBe("ady");
+        });
+    });
+
+    describe("compound conditions (after and/or)", () => {
+        it("suggests field after 'and '", () => {
+            const s = p.getSuggestion("age gt 3 and sta");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("Status");
+            expect(s!.completion).toBe("tus");
+        });
+
+        it("suggests field after 'or '", () => {
+            const s = p.getSuggestion("status eq ready or a");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("Age");
+            expect(s!.completion).toBe("ge");
+        });
+
+        it("suggests operator in second condition", () => {
+            const s = p.getSuggestion("age gt 3 and status equa");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("equals");
+            expect(s!.completion).toBe("ls");
+        });
+
+        it("suggests value in second condition", () => {
+            const s = p.getSuggestion("age gt 3 and status is re");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("Ready");
+            expect(s!.completion).toBe("ady");
+        });
+
+        it("suggests field in third condition", () => {
+            const s = p.getSuggestion("age gt 3 and status is ready and pri");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("Priority");
+            expect(s!.completion).toBe("ority");
+        });
+
+        it("returns null right after conjunction without space for next token", () => {
+            const s = p.getSuggestion("age gt 3 and");
+            expect(s).toBeNull();
+        });
+
+        it("returns null when second field is fully typed without space", () => {
+            const s = p.getSuggestion("age gt 3 and status");
+            expect(s).toBeNull();
+        });
+
+        it("does not split on 'or' inside operator alias 'greater than or equal to'", () => {
+            const s = p.getSuggestion("age greater than or equal to 5 and sta");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("Status");
+            expect(s!.completion).toBe("tus");
+        });
+
+        it("suggests value for field-specific values in second condition", () => {
+            const s = p.getSuggestion("age gt 5 and priority is hi");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("High");
+            expect(s!.completion).toBe("gh");
+        });
+
+        it("inherits field+operator and suggests value after 'or'", () => {
+            const s = p.getSuggestion("status is ready or pro");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("Progressing");
+            expect(s!.completion).toBe("gressing");
+        });
+
+        it("inherits field+operator and suggests value after 'and'", () => {
+            const s = p.getSuggestion("priority is high and lo");
+            expect(s).not.toBeNull();
+            expect(s!.display).toBe("Low");
+            expect(s!.completion).toBe("w");
         });
     });
 });

@@ -92,7 +92,7 @@ describe("Value", () => {
     it("fuzzy matches a typo against known values", () => {
         const known = [
             { label: "Ready", value: "ready" },
-            { label: "Not Ready", value: "not_ready" },
+            { label: "Progressing", value: "progressing" },
         ];
         const v = new Value("read", known);
         expect(v.isValid).toBe(true);
