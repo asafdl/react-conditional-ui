@@ -1,7 +1,8 @@
 # react-conditional-ui
 
 [![CI](https://github.com/asafdl/react-conditional-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/asafdl/react-conditional-ui/actions/workflows/ci.yml)
-![coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/asafdl/COVERAGE_GIST_ID/raw/coverage.json)
+![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 React component library for building conditions via natural language input. Users type plain-English phrases (e.g. "status is active") instead of filling out combo boxes. A fuzzy parser resolves fields, operators, and values, with support for compound `AND`/`OR` conditions and drag-and-drop grouping.
 
