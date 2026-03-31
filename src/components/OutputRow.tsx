@@ -77,7 +77,7 @@ export function OutputRow({
         onUpdate?.({
             ...condition,
             field: new Field(f.label, f, 0),
-            value: new Value(condition.value.raw, resolveFieldValues(f)),
+            value: new Value(condition.value.raw, { knownValues: resolveFieldValues(f), fieldType: f.type, validateValue: f.validateValue }),
         });
         closePopover();
     };
@@ -93,7 +93,7 @@ export function OutputRow({
     const submitValue = (raw: string) => {
         onUpdate?.({
             ...condition,
-            value: new Value(raw, resolveFieldValues(condition.field.option!)),
+            value: new Value(raw, { knownValues: resolveFieldValues(condition.field.option!), fieldType: condition.field.option!.type, validateValue: condition.field.option!.validateValue }),
         });
         closePopover();
     };

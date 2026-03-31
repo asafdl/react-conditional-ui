@@ -22,18 +22,19 @@ const darkTheme = createTheme({
 });
 
 const fields = [
-    { label: "Age", value: "age" },
+    { label: "Age", value: "age", type: "number" as const },
     {
         label: "Status",
         value: "status",
+        type: "enum" as const,
         fieldValues: [
             { label: "Ready", value: "ready" },
             { label: "Progressing", value: "progressing" },
             { label: "Complete", value: "complete" },
         ],
     },
-    { label: "Name", value: "name" },
-    { label: "Score", value: "score" },
+    { label: "Name", value: "name", type: "text" as const },
+    { label: "Score", value: "score", type: "number" as const },
 ];
 
 const fieldDocs = fields.map((f) => ({

@@ -6,11 +6,16 @@ export type OperatorOption = {
     aliases: string[];
 };
 
+export type FieldType = "text" | "number" | "enum";
+
 export type FieldOption = {
     label: string;
     value: string;
     operators?: OperatorOption[];
     fieldValues?: FieldOption[];
+    type?: FieldType;
+    /** Return `true` if valid, or an error message string. Takes priority over built-in type checks. */
+    validateValue?: (raw: string) => true | string;
 };
 
 export type ParsedCondition = {
@@ -30,6 +35,12 @@ export type ConditionEntry = {
 export type ConditionGroup = {
     id: string;
     entries: ConditionEntry[];
+};
+
+export type Diagnostic = {
+    start: number;
+    end: number;
+    message: string;
 };
 
 export type ConditionalUIProps = {

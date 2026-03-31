@@ -1,4 +1,4 @@
-import type { FieldOption, OperatorOption, ParsedCondition, ConditionGroup, ConditionEntry, LogicalOperator } from "../types";
+import type { FieldOption, OperatorOption, ParsedCondition, ConditionGroup, ConditionEntry, LogicalOperator, Diagnostic } from "../types";
 import { createLogger } from "../logger";
 import { Field, Operator, Value } from "../condition-structure";
 import { generateId } from "../id";
@@ -127,7 +127,7 @@ export class ConditionParser extends MatchEngine {
 
         if (!best.operator.raw) {
             if (endsWithSpace) {
-                const ops = best.field.option.operators ?? this.operators;
+                const ops = this.allowedOpsForField(best.field.option);
                 return this.prefixMatch("", ops.flatMap((op) => op.aliases));
             }
             return this.prefixMatch(words.join(" "), this.fields.map((f) => f.label));
@@ -135,7 +135,7 @@ export class ConditionParser extends MatchEngine {
 
         if (!best.valueRaw) {
             if (endsWithSpace) return null;
-            const ops = best.field.option.operators ?? this.operators;
+            const ops = this.allowedOpsForField(best.field.option);
             const aliases = ops.flatMap((op) => op.aliases);
             const opPartial = words.slice(words.indexOf(best.operator.raw.split(" ")[0])).join(" ");
             return this.prefixMatch(opPartial || best.operator.raw, aliases);
@@ -145,6 +145,62 @@ export class ConditionParser extends MatchEngine {
         const fieldValues = best.field.option.fieldValues ?? this.knownValues?.[best.field.option.value];
         if (!fieldValues?.length) return null;
         return this.prefixMatch(best.valueRaw, fieldValues.map((v) => v.label));
+    }
+
+    public diagnose(text: string): Diagnostic[] {
+        const input = text.trim();
+        if (!input) return [{ start: 0, end: text.length || 1, message: "Empty condition" }];
+
+        const { segments } = this.splitOnConjunction(input);
+        const resolved = this.resolveSegments(input);
+        const diagnostics: Diagnostic[] = [];
+
+        if (resolved.length === 0) {
+            return [{ start: 0, end: input.length, message: "Could not understand this condition" }];
+        }
+
+        for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i];
+            const offset = input.toLowerCase().indexOf(seg.toLowerCase());
+            const condition = resolved[i];
+
+            if (!condition) {
+                diagnostics.push({ start: offset, end: offset + seg.length, message: "Could not understand this condition" });
+                continue;
+            }
+
+            if (!condition.operator.isValid) {
+                const fieldEnd = offset + condition.field.raw.length;
+                const hasRestriction = condition.field.option?.operators || condition.field.option?.type;
+                diagnostics.push({
+                    start: fieldEnd,
+                    end: offset + seg.length,
+                    message: hasRestriction
+                        ? `Operator not supported for ${condition.field.label}`
+                        : "Unknown operator",
+                });
+            }
+
+            if (condition.operator.isValid && !condition.value.isValid) {
+                if (!condition.value.raw) {
+                    diagnostics.push({
+                        start: offset + seg.length,
+                        end: offset + seg.length + 1,
+                        message: "Missing value",
+                    });
+                } else {
+                    const valStart = offset + seg.toLowerCase().lastIndexOf(condition.value.raw.toLowerCase());
+                    diagnostics.push({
+                        start: valStart,
+                        end: valStart + condition.value.raw.length,
+                        message: condition.value.errorMessage
+                            ?? `Value not recognized for ${condition.field.label}`,
+                    });
+                }
+            }
+        }
+
+        return diagnostics;
     }
 
     public parse(text: string): ParsedCondition | null {
@@ -175,7 +231,11 @@ export class ConditionParser extends MatchEngine {
                 best.operator.score < 1 ? best.operator.option : null,
                 best.operator.score,
             ),
-            value: new Value(best.valueRaw, fieldValues),
+            value: new Value(best.valueRaw, {
+                knownValues: fieldValues,
+                fieldType: best.field.option.type,
+                validateValue: best.field.option.validateValue,
+            }),
         };
 
         log(

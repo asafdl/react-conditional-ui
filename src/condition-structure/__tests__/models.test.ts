@@ -56,7 +56,7 @@ describe("Value", () => {
 
     it("matches against known values (exact)", () => {
         const known = [{ label: "Active", value: "active" }];
-        const v = new Value("active", known);
+        const v = new Value("active", { knownValues: known });
         expect(v.isValid).toBe(true);
         expect(v.label).toBe("Active");
         expect(v.value).toBe("active");
@@ -64,28 +64,28 @@ describe("Value", () => {
 
     it("matches against known values (case-insensitive)", () => {
         const known = [{ label: "Active", value: "active" }];
-        const v = new Value("ACTIVE", known);
+        const v = new Value("ACTIVE", { knownValues: known });
         expect(v.isValid).toBe(true);
         expect(v.label).toBe("Active");
     });
 
     it("matches by label when value differs", () => {
         const known = [{ label: "Yes", value: "true" }];
-        const v = new Value("yes", known);
+        const v = new Value("yes", { knownValues: known });
         expect(v.isValid).toBe(true);
         expect(v.value).toBe("true");
     });
 
     it("unknown value against known values is invalid", () => {
         const known = [{ label: "Active", value: "active" }];
-        const v = new Value("bogus", known);
+        const v = new Value("bogus", { knownValues: known });
         expect(v.isValid).toBe(false);
         expect(v.label).toBe("bogus");
     });
 
     it("empty value with known values is invalid", () => {
         const known = [{ label: "Active", value: "active" }];
-        const v = new Value("", known);
+        const v = new Value("", { knownValues: known });
         expect(v.isValid).toBe(false);
     });
 
@@ -94,7 +94,7 @@ describe("Value", () => {
             { label: "Ready", value: "ready" },
             { label: "Progressing", value: "progressing" },
         ];
-        const v = new Value("read", known);
+        const v = new Value("read", { knownValues: known });
         expect(v.isValid).toBe(true);
         expect(v.value).toBe("ready");
         expect(v.label).toBe("Ready");
@@ -107,19 +107,101 @@ describe("Value", () => {
             { label: "Active", value: "active" },
             { label: "Inactive", value: "inactive" },
         ];
-        const v = new Value("actve", known);
+        const v = new Value("actve", { knownValues: known });
         expect(v.isValid).toBe(true);
         expect(v.value).toBe("active");
     });
 
     it("exact match has score 0", () => {
         const known = [{ label: "Active", value: "active" }];
-        const v = new Value("active", known);
+        const v = new Value("active", { knownValues: known });
         expect(v.score).toBe(0);
     });
 
     it("free-text valid value has score 0", () => {
         const v = new Value("anything");
         expect(v.score).toBe(0);
+    });
+
+    describe("fieldType: number", () => {
+        it("accepts a valid number", () => {
+            const v = new Value("42", { fieldType: "number" });
+            expect(v.isValid).toBe(true);
+            expect(v.errorMessage).toBeNull();
+        });
+
+        it("accepts a decimal number", () => {
+            const v = new Value("3.14", { fieldType: "number" });
+            expect(v.isValid).toBe(true);
+        });
+
+        it("accepts negative numbers", () => {
+            const v = new Value("-7", { fieldType: "number" });
+            expect(v.isValid).toBe(true);
+        });
+
+        it("rejects non-numeric string", () => {
+            const v = new Value("hello", { fieldType: "number" });
+            expect(v.isValid).toBe(false);
+            expect(v.errorMessage).toBe("Expected a number");
+        });
+
+        it("rejects empty string", () => {
+            const v = new Value("", { fieldType: "number" });
+            expect(v.isValid).toBe(false);
+        });
+    });
+
+    describe("fieldType: text", () => {
+        it("accepts any non-empty string", () => {
+            const v = new Value("hello", { fieldType: "text" });
+            expect(v.isValid).toBe(true);
+        });
+
+        it("rejects empty string", () => {
+            const v = new Value("", { fieldType: "text" });
+            expect(v.isValid).toBe(false);
+        });
+    });
+
+    describe("validateValue callback", () => {
+        it("accepts when callback returns true", () => {
+            const v = new Value("42", { validateValue: () => true });
+            expect(v.isValid).toBe(true);
+            expect(v.errorMessage).toBeNull();
+        });
+
+        it("rejects when callback returns error string", () => {
+            const v = new Value("42", { validateValue: () => "Must be positive" });
+            expect(v.isValid).toBe(false);
+            expect(v.errorMessage).toBe("Must be positive");
+        });
+
+        it("takes priority over fieldType", () => {
+            const v = new Value("hello", {
+                fieldType: "number",
+                validateValue: () => true,
+            });
+            expect(v.isValid).toBe(true);
+        });
+
+        it("can reject a value that fieldType would accept", () => {
+            const v = new Value("999", {
+                fieldType: "number",
+                validateValue: (raw) => Number(raw) <= 100 ? true : "Max value is 100",
+            });
+            expect(v.isValid).toBe(false);
+            expect(v.errorMessage).toBe("Max value is 100");
+        });
+
+        it("works with knownValues — runs after fuzzy match", () => {
+            const known = [{ label: "Active", value: "active" }];
+            const v = new Value("active", {
+                knownValues: known,
+                validateValue: () => "Custom rejection",
+            });
+            expect(v.isValid).toBe(false);
+            expect(v.errorMessage).toBe("Custom rejection");
+        });
     });
 });

@@ -156,26 +156,47 @@
     background-color: rgba(124, 138, 255, 0.06);
 }
 
-/* ── Ghost text autocomplete ── */
+/* ── Text overlay (ghost + squiggly) ── */
 .rcui-input-wrapper {
     position: relative;
 }
 
-.rcui-ghost {
+.rcui-overlay {
     position: absolute;
     top: 0;
+    left: 0;
+    right: 0;
     bottom: 0;
     display: flex;
     align-items: center;
-    padding: 8.5px 0;
-    margin-left: 14px;
+    padding: 8.5px 14px;
     pointer-events: none;
     font: inherit;
     font-size: 0.875rem;
     line-height: 1.4375em;
     letter-spacing: 0.00938em;
-    color: rgba(255, 255, 255, 0.25);
     white-space: pre;
+    color: transparent;
+    overflow: hidden;
+}
+
+.rcui-overlay .rcui-ghost {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.rcui-overlay .rcui-squiggly {
+    text-decoration: underline wavy #f5c542;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+}
+
+/* ── Input adornment icons ── */
+.rcui-adornment-enter {
+    color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.rcui-adornment-error {
+    color: #f5c542 !important;
 }
 
 /* ── Popover value edit ── */

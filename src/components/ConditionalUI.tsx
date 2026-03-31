@@ -3,7 +3,7 @@ import { Input } from "./Input";
 import { Output } from "./Output";
 import { ConditionParser } from "../fuzzy/parser";
 import { DEFAULT_OPERATORS } from "../condition-structure";
-import type { ConditionalUIProps, ConditionGroup, ParsedCondition } from "../types";
+import type { ConditionalUIProps, ConditionGroup, ParsedCondition, Diagnostic } from "../types";
 
 export function ConditionalUI({
     fields,
@@ -15,6 +15,7 @@ export function ConditionalUI({
 }: ConditionalUIProps) {
     const [internal, setInternal] = useState("");
     const [groups, setGroups] = useState<ConditionGroup[]>([]);
+    const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
     const text = value ?? internal;
 
     const parser = useMemo(
@@ -30,6 +31,7 @@ export function ConditionalUI({
         (next: string) => {
             if (value === undefined) setInternal(next);
             onChange?.(next);
+            setDiagnostics([]);
         },
         [value, onChange],
     );
@@ -37,10 +39,18 @@ export function ConditionalUI({
     const handleSubmit = useCallback(() => {
         const group = parser.parseCompound(text);
         if (group) {
-            setGroups((prev) => [...prev, group]);
-            if (value === undefined) setInternal("");
-            onChange?.("");
+            const hasInvalid = group.entries.some(
+                (e) => !e.condition.field.isValid || !e.condition.operator.isValid || !e.condition.value.isValid,
+            );
+            if (!hasInvalid) {
+                setGroups((prev) => [...prev, group]);
+                setDiagnostics([]);
+                if (value === undefined) setInternal("");
+                onChange?.("");
+                return;
+            }
         }
+        setDiagnostics(parser.diagnose(text));
     }, [text, parser, value, onChange]);
 
     const getSuggestion = useCallback(
@@ -71,7 +81,7 @@ export function ConditionalUI({
 
     return (
         <div className="rcui-root">
-            <Input value={text} onChange={handleChange} onSubmit={handleSubmit} getSuggestion={getSuggestion} />
+            <Input value={text} onChange={handleChange} onSubmit={handleSubmit} getSuggestion={getSuggestion} diagnostics={diagnostics} />
             <Output
                 groups={groups}
                 fields={fields}

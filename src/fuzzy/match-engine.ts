@@ -1,5 +1,5 @@
 import Fuse from "fuse.js";
-import type { FieldOption, OperatorOption } from "../types";
+import type { FieldOption, FieldType, OperatorOption } from "../types";
 import { createLogger } from "../logger";
 
 const log = createLogger("match-engine");
@@ -33,6 +33,12 @@ export function stripLeadingNoise(words: string[]): string[] {
     while (i < words.length && NOISE_WORDS.has(words[i])) i++;
     return words.slice(i);
 }
+
+const TYPE_ALLOWED_OPS: Record<FieldType, Set<string>> = {
+    number: new Set(["eq", "neq", "gt", "lt", "gte", "lte"]),
+    enum: new Set(["eq", "neq"]),
+    text: new Set(["eq", "neq", "contains", "starts_with"]),
+};
 
 export class MatchEngine {
     protected readonly fields: FieldOption[];
@@ -69,8 +75,9 @@ export class MatchEngine {
 
         this.perFieldOpFuse = new Map();
         for (const field of fields) {
-            if (field.operators) {
-                const aliases: FlatAlias[] = field.operators.flatMap((op) =>
+            const restricted = this.resolveOpsForField(field, operators);
+            if (restricted !== operators) {
+                const aliases: FlatAlias[] = restricted.flatMap((op) =>
                     op.aliases.map((alias) => ({ alias: alias.toLowerCase(), operator: op })),
                 );
                 this.perFieldOpFuse.set(
@@ -79,6 +86,19 @@ export class MatchEngine {
                 );
             }
         }
+    }
+
+    private resolveOpsForField(field: FieldOption, allOps: OperatorOption[]): OperatorOption[] {
+        if (field.operators) return field.operators;
+        if (field.type) {
+            const allowed = TYPE_ALLOWED_OPS[field.type];
+            return allOps.filter((op) => allowed.has(op.value));
+        }
+        return allOps;
+    }
+
+    allowedOpsForField(field: FieldOption): OperatorOption[] {
+        return this.resolveOpsForField(field, this.operators);
     }
 
     matchField(candidate: string): FuseMatch<FieldOption> | null {
@@ -97,7 +117,7 @@ export class MatchEngine {
     }
 
     matchOperator(candidate: string, field?: FieldOption): FuseMatch<OperatorOption> | null {
-        const ops = field?.operators ?? this.operators;
+        const ops = field ? this.allowedOpsForField(field) : this.operators;
         for (const op of ops) {
             for (const alias of op.aliases) {
                 if (candidate === alias.toLowerCase()) {
@@ -171,7 +191,7 @@ export class MatchEngine {
             if (!fieldMatch) continue;
 
             if (i === n) {
-                const defaultOp = fieldMatch.option.operators?.[0] ?? this.operators[0];
+                const defaultOp = this.allowedOpsForField(fieldMatch.option)[0] ?? this.operators[0];
                 yield {
                     field: { ...fieldMatch, raw: fieldRaw },
                     operator: { option: defaultOp, score: 1, raw: "" },

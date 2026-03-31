@@ -770,3 +770,206 @@ describe("ConditionParser.getSuggestion", () => {
         });
     });
 });
+
+describe("ConditionParser.diagnose", () => {
+    const p = new ConditionParser(fieldsWithConfig, DEFAULT_OPERATORS);
+
+    it("returns empty array for a fully valid condition", () => {
+        const d = p.diagnose("age gt 5");
+        expect(d).toEqual([]);
+    });
+
+    it("returns empty array for valid condition with fieldValues", () => {
+        const d = p.diagnose("status is ready");
+        expect(d).toEqual([]);
+    });
+
+    it("diagnoses completely unrecognized input", () => {
+        const d = p.diagnose("xyzzy foobar baz");
+        expect(d).toHaveLength(1);
+        expect(d[0].message).toMatch(/could not understand/i);
+        expect(d[0].start).toBe(0);
+    });
+
+    it("diagnoses empty input", () => {
+        const d = p.diagnose("");
+        expect(d).toHaveLength(1);
+        expect(d[0].message).toMatch(/empty/i);
+    });
+
+    it("diagnoses missing operator (field only)", () => {
+        const d = p.diagnose("age");
+        expect(d).toHaveLength(1);
+        expect(d[0].message).toMatch(/operator/i);
+    });
+
+    it("diagnoses invalid value for field with fieldValues", () => {
+        const d = p.diagnose("status is banana");
+        expect(d).toHaveLength(1);
+        expect(d[0].message).toMatch(/value not recognized/i);
+    });
+
+    it("diagnoses missing value", () => {
+        const d = p.diagnose("status is");
+        expect(d.some((diag) => diag.message.match(/operator|missing/i))).toBe(true);
+    });
+
+    it("diagnoses operator not supported for field with restricted operators", () => {
+        const d = p.diagnose("priority greater than high");
+        expect(d).toHaveLength(1);
+        expect(d[0].message).toMatch(/could not understand/i);
+    });
+
+    it("returns diagnostics per segment in compound condition", () => {
+        const d = p.diagnose("age gt 5 and status is banana");
+        expect(d.some((diag) => diag.message.match(/value not recognized/i))).toBe(true);
+    });
+});
+
+describe("ConditionParser with field types", () => {
+    const typedFields: FieldOption[] = [
+        { label: "Age", value: "age", type: "number" },
+        {
+            label: "Status",
+            value: "status",
+            type: "enum",
+            fieldValues: [
+                { label: "Ready", value: "ready" },
+                { label: "Progressing", value: "progressing" },
+                { label: "Complete", value: "complete" },
+            ],
+        },
+        { label: "Name", value: "name", type: "text" },
+        { label: "Score", value: "score", type: "number" },
+    ];
+
+    const tp = new ConditionParser(typedFields, DEFAULT_OPERATORS);
+
+    describe("parsing", () => {
+        it("parses numeric field with valid number", () => {
+            const r = tp.parse("age gt 25");
+            expect(r).not.toBeNull();
+            expect(r!.value.isValid).toBe(true);
+        });
+
+        it("marks non-numeric value as invalid for number field", () => {
+            const r = tp.parse("age gt hello");
+            expect(r).not.toBeNull();
+            expect(r!.value.isValid).toBe(false);
+            expect(r!.value.errorMessage).toBe("Expected a number");
+        });
+
+        it("parses enum field with valid value", () => {
+            const r = tp.parse("status is ready");
+            expect(r).not.toBeNull();
+            expect(r!.value.isValid).toBe(true);
+        });
+
+        it("rejects gt on enum field (operator filtered)", () => {
+            const r = tp.parse("status gt ready");
+            expect(r).toBeNull();
+        });
+
+        it("rejects gt on text field", () => {
+            const r = tp.parse("name gt something");
+            expect(r).toBeNull();
+        });
+
+        it("allows eq on text field", () => {
+            const r = tp.parse("name is john");
+            expect(r).not.toBeNull();
+            expect(r!.value.isValid).toBe(true);
+        });
+    });
+
+    describe("diagnostics with types", () => {
+        it("diagnoses non-numeric value on number field", () => {
+            const d = tp.diagnose("age gt hello");
+            expect(d).toHaveLength(1);
+            expect(d[0].message).toBe("Expected a number");
+        });
+
+        it("diagnoses operator not supported for enum field", () => {
+            const d = tp.diagnose("status greater than ready");
+            expect(d.length).toBeGreaterThan(0);
+            expect(d[0].message).toMatch(/operator not supported|could not understand/i);
+        });
+
+        it("no diagnostics for valid typed conditions", () => {
+            const d = tp.diagnose("age gt 25");
+            expect(d).toHaveLength(0);
+        });
+
+        it("no diagnostics for valid enum condition", () => {
+            const d = tp.diagnose("status is ready");
+            expect(d).toHaveLength(0);
+        });
+    });
+
+    describe("suggestions with types", () => {
+        it("suggests only type-appropriate operators for enum field", () => {
+            const s = tp.getSuggestion("status ");
+            expect(s).not.toBeNull();
+            expect(s!.display.toLowerCase()).not.toMatch(/greater|less/);
+        });
+
+        it("suggests operators for number field", () => {
+            const s = tp.getSuggestion("age ");
+            expect(s).not.toBeNull();
+        });
+    });
+});
+
+describe("ConditionParser with validateValue callback", () => {
+    const validatedFields: FieldOption[] = [
+        {
+            label: "Age",
+            value: "age",
+            type: "number",
+            validateValue: (raw) => {
+                const n = Number(raw);
+                if (!isFinite(n)) return "Expected a number";
+                if (n < 0 || n > 150) return "Age must be between 0 and 150";
+                return true;
+            },
+        },
+        {
+            label: "Email",
+            value: "email",
+            type: "text",
+            validateValue: (raw) => raw.includes("@") ? true : "Must be a valid email",
+        },
+    ];
+
+    const vp = new ConditionParser(validatedFields, DEFAULT_OPERATORS);
+
+    it("accepts value passing custom validator", () => {
+        const r = vp.parse("age is 25");
+        expect(r).not.toBeNull();
+        expect(r!.value.isValid).toBe(true);
+    });
+
+    it("rejects value failing custom validator", () => {
+        const r = vp.parse("age is 200");
+        expect(r).not.toBeNull();
+        expect(r!.value.isValid).toBe(false);
+        expect(r!.value.errorMessage).toBe("Age must be between 0 and 150");
+    });
+
+    it("diagnoses custom validation error", () => {
+        const d = vp.diagnose("age is 200");
+        expect(d).toHaveLength(1);
+        expect(d[0].message).toBe("Age must be between 0 and 150");
+    });
+
+    it("diagnoses email validation error", () => {
+        const d = vp.diagnose("email is john");
+        expect(d).toHaveLength(1);
+        expect(d[0].message).toBe("Must be a valid email");
+    });
+
+    it("no diagnostics for valid email", () => {
+        const d = vp.diagnose("email is john@test.com");
+        expect(d).toHaveLength(0);
+    });
+});
