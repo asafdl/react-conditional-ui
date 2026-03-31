@@ -80,7 +80,7 @@ function App() {
                     <div style={{ flex: 1 }}>
                         <h3 style={sectionHeading}>Examples</h3>
                         <ul style={{ ...listStyle, fontFamily: "monospace" }}>
-                            {["age greater than 25", "status is not ready and not progressing", "name contains john and score >= 80"].map((ex) => (
+                            {["age greater than 25 or lte 4", "status is not ready and not progressing", "name contains john and score >= 80"].map((ex) => (
                                 <li key={ex} style={{ color: "#67e8f9" }}>{ex}</li>
                             ))}
                         </ul>
