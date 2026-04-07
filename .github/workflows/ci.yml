@@ -31,10 +31,11 @@ jobs:
             - name: Extract coverage percentage
               id: coverage
               run: |
-                  COVERAGE=$(npx coverage-summary-json 2>/dev/null || node -e "
-                    const r = require('./coverage/coverage-summary.json');
+                  COVERAGE=$(node -e "
+                    import { readFileSync } from 'fs';
+                    const r = JSON.parse(readFileSync('./coverage/coverage-summary.json', 'utf8'));
                     console.log(r.total.lines.pct);
-                  ")
+                  " --input-type=module)
                   echo "pct=$COVERAGE" >> "$GITHUB_OUTPUT"
 
             - name: Create coverage badge
