@@ -39,11 +39,11 @@ jobs:
                   echo "pct=$COVERAGE" >> "$GITHUB_OUTPUT"
 
             - name: Create coverage badge
-              uses: schneegans/dynamic-badges-action@v1.7.0
+              uses: schneegans/dynamic-badges-action@v1.8.0
               if: github.ref == 'refs/heads/master'
               with:
                   auth: ${{ secrets.GIST_TOKEN }}
-                  gistID: 878c647c0e4534366ac2787e3871ce81
+                  gistID: ${{ vars.COVERAGE_GIST_ID }}
                   filename: coverage.json
                   label: coverage
                   message: "${{ steps.coverage.outputs.pct }}%"
