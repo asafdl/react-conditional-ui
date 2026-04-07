@@ -7,6 +7,8 @@
 
 React component library for building conditions via natural language input. Users type plain-English phrases (e.g. "status is active") instead of filling out combo boxes. A fuzzy parser resolves fields, operators, and values, with support for compound `AND`/`OR` conditions and drag-and-drop grouping.
 
+**[Live Demo](https://asafdl.github.io/react-conditional-ui/)**
+
 ## Components
 
 ### `<ConditionalUI />`
@@ -17,39 +19,109 @@ All-in-one component: input field + parsed condition output with editing and dra
 import { ConditionalUI } from "react-conditional-ui";
 
 <ConditionalUI
-    fields={[{ label: "Status", value: "status" }]}
-    operators={DEFAULT_OPERATORS}
+    fields={[
+        { label: "Status", value: "status" },
+        { label: "Age", value: "age", type: "number" },
+    ]}
     onConditionsChange={(groups) => console.log(groups)}
 />;
 ```
 
 ### `<Input />`
 
-Standalone text input. Calls `onSubmit` when the user presses Enter.
+Standalone text input with fuzzy parsing, ghost autocomplete, and inline diagnostics.
 
 ```tsx
-<Input onSubmit={(text) => handleParse(text)} placeholder="Type a condition…" />
+import { Input } from "react-conditional-ui";
+
+<Input fields={fields} operators={operators} onSubmit={(group) => console.log(group)} />;
+```
+
+Also supports a fully controlled mode via `useConditionalInput`:
+
+```tsx
+import { Input, useConditionalInput } from "react-conditional-ui";
+
+const { text, diagnostics, handleChange, handleSubmit, getSuggestion } = useConditionalInput({
+    fields,
+    onSubmit: handleGroup,
+});
+
+<Input
+    value={text}
+    onChange={handleChange}
+    onSubmit={handleSubmit}
+    getSuggestion={getSuggestion}
+    diagnostics={diagnostics}
+/>;
 ```
 
 ### `<Output />`
 
-Renders parsed condition groups as interactive chip rows. Supports editing (chip popovers), removal, connector toggling, and drag-and-drop reordering when `onGroupsChange` is provided. Read-only when omitted.
+Renders parsed condition groups as interactive chip rows with drag-and-drop reordering, chip editing via popovers, connector toggling, and entry removal.
+
+Uncontrolled (manages its own state):
 
 ```tsx
-<Output
-    groups={groups}
-    fields={fields}
-    operators={operators}
-    onGroupsChange={setGroups}
-    onUpdateCondition={handleUpdate}
-/>
+import { Output } from "react-conditional-ui";
+
+<Output fields={fields} operators={operators} />;
 ```
 
-## Planned features
+Controlled:
 
-- **Mentions / autocomplete** — inline suggestions while typing to surface available fields, operators, and values
-- **Condition structure behaviours** — field-level constraints (e.g. a field only accepts numeric values, or a specific set of operators)
-- **Error & notification system** — surface validation errors and parser feedback to the consumer
+```tsx
+<Output groups={groups} fields={fields} operators={operators} onGroupsChange={setGroups} />
+```
+
+Read-only (pass `groups` without `onGroupsChange`):
+
+```tsx
+<Output groups={groups} fields={fields} operators={operators} />
+```
+
+### Group configuration
+
+Each `ConditionGroup` accepts an optional `config` to control per-group behavior:
+
+```tsx
+const group: ConditionGroup = {
+    id: "1",
+    entries: [...],
+    config: {
+        editable: false,   // disable chip editing
+        removable: false,  // hide remove buttons
+        variant: "filled", // "outlined" (default) or "filled"
+        label: "Filters",  // label above the group
+    },
+};
+```
+
+You can also set defaults for all groups via `defaultGroupConfig` on `<Output />`.
+
+## Hooks
+
+### `useConditionalInput`
+
+Manages input state, parsing, diagnostics, and suggestions. Use when composing `<Input />` with custom UI.
+
+### `useConditionalOutput`
+
+Manages group state and mutations (add, remove, reorder, update, toggle connectors). Supports controlled/uncontrolled patterns.
+
+```tsx
+import { useConditionalOutput } from "react-conditional-ui";
+
+const { groups, mutations } = useConditionalOutput({
+    onGroupsChange: (groups) => console.log(groups),
+});
+
+mutations.addGroup(parsedGroup);
+```
+
+## Styling
+
+All components accept `className` and `style` props. Internal elements use `rcui-*` CSS classes that can be overridden.
 
 ## Local development
 
