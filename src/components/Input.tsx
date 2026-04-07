@@ -181,12 +181,18 @@ function InputView({
                                 {hasErrors ? (
                                     <Tooltip title={errorSummary} arrow>
                                         <IconButton size="small" onClick={onSubmit} edge="end">
-                                            <ErrorOutlineIcon fontSize="small" className="rcui-adornment-error" />
+                                            <ErrorOutlineIcon
+                                                fontSize="small"
+                                                className="rcui-adornment-error"
+                                            />
                                         </IconButton>
                                     </Tooltip>
                                 ) : (
                                     <IconButton size="small" onClick={onSubmit} edge="end">
-                                        <KeyboardReturnIcon fontSize="small" className="rcui-adornment-enter" />
+                                        <KeyboardReturnIcon
+                                            fontSize="small"
+                                            className="rcui-adornment-enter"
+                                        />
                                     </IconButton>
                                 )}
                             </InputAdornment>
@@ -197,8 +203,12 @@ function InputView({
             <div className="rcui-overlay" aria-hidden="true">
                 {(overlaySegments ?? [{ text: value }]).map((seg, i) =>
                     seg.diagnostic ? (
-                        <span key={i} className="rcui-squiggly" title={seg.diagnostic.message}>{seg.text}</span>
-                    ) : seg.text,
+                        <span key={i} className="rcui-squiggly" title={seg.diagnostic.message}>
+                            {seg.text}
+                        </span>
+                    ) : (
+                        seg.text
+                    ),
                 )}
                 {ghost && <span className="rcui-ghost">{ghost}</span>}
             </div>

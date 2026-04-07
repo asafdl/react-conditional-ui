@@ -7,7 +7,18 @@ export { useConditionalInput } from "./hooks/useConditionalInput";
 export { useConditionalOutput } from "./hooks/useConditionalOutput";
 export { ConditionParser } from "./fuzzy/parser";
 export { DEFAULT_OPERATORS } from "./fuzzy/operators";
-export type { FieldOption, FieldType, OperatorOption, ParsedCondition, LogicalOperator, ConditionEntry, ConditionGroup, GroupConfig, ConditionalUIProps, Diagnostic } from "./types";
+export type {
+    FieldOption,
+    FieldType,
+    OperatorOption,
+    ParsedCondition,
+    LogicalOperator,
+    ConditionEntry,
+    ConditionGroup,
+    GroupConfig,
+    ConditionalUIProps,
+    Diagnostic,
+} from "./types";
 export type { InputProps } from "./components/Input";
 export type { OutputProps, GroupMutations } from "./components/Output";
 export type { UseConditionalInputOptions } from "./hooks/useConditionalInput";

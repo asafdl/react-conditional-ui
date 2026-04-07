@@ -1,4 +1,12 @@
-import type { FieldOption, OperatorOption, ParsedCondition, ConditionGroup, ConditionEntry, LogicalOperator, Diagnostic } from "../types";
+import type {
+    FieldOption,
+    OperatorOption,
+    ParsedCondition,
+    ConditionGroup,
+    ConditionEntry,
+    LogicalOperator,
+    Diagnostic,
+} from "../types";
 import { createLogger } from "../logger";
 import { Field, Operator, Value } from "../condition-structure";
 import { generateId } from "../id";
@@ -122,15 +130,24 @@ export class ConditionParser extends MatchEngine {
 
         if (!best) {
             if (endsWithSpace) return null;
-            return this.prefixMatch(words.join(" "), this.fields.map((f) => f.label));
+            return this.prefixMatch(
+                words.join(" "),
+                this.fields.map((f) => f.label),
+            );
         }
 
         if (!best.operator.raw) {
             if (endsWithSpace) {
                 const ops = this.allowedOpsForField(best.field.option);
-                return this.prefixMatch("", ops.flatMap((op) => op.aliases));
+                return this.prefixMatch(
+                    "",
+                    ops.flatMap((op) => op.aliases),
+                );
             }
-            return this.prefixMatch(words.join(" "), this.fields.map((f) => f.label));
+            return this.prefixMatch(
+                words.join(" "),
+                this.fields.map((f) => f.label),
+            );
         }
 
         if (!best.valueRaw) {
@@ -142,9 +159,13 @@ export class ConditionParser extends MatchEngine {
         }
 
         if (endsWithSpace) return null;
-        const fieldValues = best.field.option.fieldValues ?? this.knownValues?.[best.field.option.value];
+        const fieldValues =
+            best.field.option.fieldValues ?? this.knownValues?.[best.field.option.value];
         if (!fieldValues?.length) return null;
-        return this.prefixMatch(best.valueRaw, fieldValues.map((v) => v.label));
+        return this.prefixMatch(
+            best.valueRaw,
+            fieldValues.map((v) => v.label),
+        );
     }
 
     public diagnose(text: string): Diagnostic[] {
@@ -156,7 +177,9 @@ export class ConditionParser extends MatchEngine {
         const diagnostics: Diagnostic[] = [];
 
         if (resolved.length === 0) {
-            return [{ start: 0, end: input.length, message: "Could not understand this condition" }];
+            return [
+                { start: 0, end: input.length, message: "Could not understand this condition" },
+            ];
         }
 
         for (let i = 0; i < segments.length; i++) {
@@ -165,13 +188,18 @@ export class ConditionParser extends MatchEngine {
             const condition = resolved[i];
 
             if (!condition) {
-                diagnostics.push({ start: offset, end: offset + seg.length, message: "Could not understand this condition" });
+                diagnostics.push({
+                    start: offset,
+                    end: offset + seg.length,
+                    message: "Could not understand this condition",
+                });
                 continue;
             }
 
             if (!condition.operator.isValid) {
                 const fieldEnd = offset + condition.field.raw.length;
-                const hasRestriction = condition.field.option?.operators || condition.field.option?.type;
+                const hasRestriction =
+                    condition.field.option?.operators || condition.field.option?.type;
                 diagnostics.push({
                     start: fieldEnd,
                     end: offset + seg.length,
@@ -189,12 +217,14 @@ export class ConditionParser extends MatchEngine {
                         message: "Missing value",
                     });
                 } else {
-                    const valStart = offset + seg.toLowerCase().lastIndexOf(condition.value.raw.toLowerCase());
+                    const valStart =
+                        offset + seg.toLowerCase().lastIndexOf(condition.value.raw.toLowerCase());
                     diagnostics.push({
                         start: valStart,
                         end: valStart + condition.value.raw.length,
-                        message: condition.value.errorMessage
-                            ?? `Value not recognized for ${condition.field.label}`,
+                        message:
+                            condition.value.errorMessage ??
+                            `Value not recognized for ${condition.field.label}`,
                     });
                 }
             }
@@ -221,8 +251,8 @@ export class ConditionParser extends MatchEngine {
             return null;
         }
 
-        const fieldValues = best.field.option.fieldValues
-            ?? this.knownValues?.[best.field.option.value];
+        const fieldValues =
+            best.field.option.fieldValues ?? this.knownValues?.[best.field.option.value];
 
         const result: ParsedCondition = {
             field: new Field(best.field.raw, best.field.option, best.field.score),
@@ -245,7 +275,11 @@ export class ConditionParser extends MatchEngine {
             result.operator.value,
             result.operator.label,
             result.value.value,
-            { field: result.field.isValid, op: result.operator.isValid, value: result.value.isValid },
+            {
+                field: result.field.isValid,
+                op: result.operator.isValid,
+                value: result.value.isValid,
+            },
         );
 
         return result;

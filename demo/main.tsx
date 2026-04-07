@@ -16,8 +16,7 @@ const darkTheme = createTheme({
     },
     shape: { borderRadius: 10 },
     typography: {
-        fontFamily:
-            "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     },
 });
 
@@ -48,11 +47,20 @@ function App() {
             <CssBaseline />
             <div style={{ maxWidth: 720, margin: "0 auto", padding: "48px 24px" }}>
                 <header style={{ textAlign: "center", marginBottom: 40 }}>
-                    <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em", color: "#e6edf3", margin: "0 0 8px" }}>
+                    <h1
+                        style={{
+                            fontSize: 28,
+                            fontWeight: 700,
+                            letterSpacing: "-0.03em",
+                            color: "#e6edf3",
+                            margin: "0 0 8px",
+                        }}
+                    >
                         react-conditional-ui
                     </h1>
                     <p style={{ color: "#9ca3af", fontSize: 15, margin: 0 }}>
-                        Type natural-language conditions and press <kbd style={kbdStyle}>Enter</kbd>.<br />
+                        Type natural-language conditions and press <kbd style={kbdStyle}>Enter</kbd>
+                        .<br />
                         Suggestions appear inline — press <kbd style={kbdStyle}>Tab</kbd> to accept.
                     </p>
                 </header>
@@ -64,15 +72,30 @@ function App() {
                     />
                 </section>
 
-                <footer style={{ display: "flex", gap: 48, color: "#9ca3af", fontSize: 13, lineHeight: 1.8, borderTop: "1px solid #2d333b", paddingTop: 24 }}>
+                <footer
+                    style={{
+                        display: "flex",
+                        gap: 48,
+                        color: "#9ca3af",
+                        fontSize: 13,
+                        lineHeight: 1.8,
+                        borderTop: "1px solid #2d333b",
+                        paddingTop: 24,
+                    }}
+                >
                     <div style={{ flex: 1 }}>
                         <h3 style={sectionHeading}>Fields</h3>
                         <ul style={listStyle}>
                             {fieldDocs.map((f) => (
                                 <li key={f.name}>
-                                    <span style={{ color: "#7c8aff", fontWeight: 500 }}>{f.name}</span>
+                                    <span style={{ color: "#7c8aff", fontWeight: 500 }}>
+                                        {f.name}
+                                    </span>
                                     {f.values && (
-                                        <span style={{ color: "#6b7280" }}> — {f.values.join(", ")}</span>
+                                        <span style={{ color: "#6b7280" }}>
+                                            {" "}
+                                            — {f.values.join(", ")}
+                                        </span>
                                     )}
                                 </li>
                             ))}
@@ -81,8 +104,14 @@ function App() {
                     <div style={{ flex: 1 }}>
                         <h3 style={sectionHeading}>Examples</h3>
                         <ul style={{ ...listStyle, fontFamily: "monospace" }}>
-                            {["age greater than 25 or lte 4", "status is not ready and not progressing", "name contains john and score >= 80"].map((ex) => (
-                                <li key={ex} style={{ color: "#67e8f9" }}>{ex}</li>
+                            {[
+                                "age greater than 25 or lte 4",
+                                "status is not ready and not progressing",
+                                "name contains john and score >= 80",
+                            ].map((ex) => (
+                                <li key={ex} style={{ color: "#67e8f9" }}>
+                                    {ex}
+                                </li>
                             ))}
                         </ul>
                     </div>

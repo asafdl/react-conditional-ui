@@ -46,10 +46,7 @@ function makeCondition(
     };
 }
 
-function makeEntry(
-    condition: ParsedCondition,
-    connector: "and" | "or" = "and",
-): ConditionEntry {
+function makeEntry(condition: ParsedCondition, connector: "and" | "or" = "and"): ConditionEntry {
     return { id: generateId(), condition, connector };
 }
 
@@ -236,9 +233,9 @@ describe("ConditionalUI", () => {
 
 describe("Output standalone (read-only)", () => {
     it("renders groups without edit callbacks", () => {
-        const groups = [makeGroup([
-            makeEntry(makeCondition("age", "Age", "gt", "greater than", "18")),
-        ])];
+        const groups = [
+            makeGroup([makeEntry(makeCondition("age", "Age", "gt", "greater than", "18"))]),
+        ];
         render(<Output groups={groups} fields={fields} operators={DEFAULT_OPERATORS} />);
 
         expect(screen.getByText("Age")).toBeInTheDocument();
@@ -253,10 +250,12 @@ describe("Output standalone (read-only)", () => {
     });
 
     it("renders connector chip for multi-entry groups", () => {
-        const groups = [makeGroup([
-            makeEntry(makeCondition("status", "Status", "eq", "equals", "green"), "or"),
-            makeEntry(makeCondition("status", "Status", "eq", "equals", "blue"), "or"),
-        ])];
+        const groups = [
+            makeGroup([
+                makeEntry(makeCondition("status", "Status", "eq", "equals", "green"), "or"),
+                makeEntry(makeCondition("status", "Status", "eq", "equals", "blue"), "or"),
+            ]),
+        ];
         render(<Output groups={groups} fields={fields} operators={DEFAULT_OPERATORS} />);
 
         expect(screen.getByText("OR")).toBeInTheDocument();
@@ -264,9 +263,7 @@ describe("Output standalone (read-only)", () => {
     });
 
     it("renders drag handles in read-only mode", () => {
-        const groups = [makeGroup([
-            makeEntry(makeCondition("age", "Age", "eq", "equals", "10")),
-        ])];
+        const groups = [makeGroup([makeEntry(makeCondition("age", "Age", "eq", "equals", "10"))])];
         render(<Output groups={groups} fields={fields} operators={DEFAULT_OPERATORS} />);
 
         expect(screen.getByLabelText("drag handle")).toBeInTheDocument();

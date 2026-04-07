@@ -16,10 +16,10 @@ All-in-one component: input field + parsed condition output with editing and dra
 import { ConditionalUI } from "react-conditional-ui";
 
 <ConditionalUI
-  fields={[{ label: "Status", value: "status" }]}
-  operators={DEFAULT_OPERATORS}
-  onConditionsChange={(groups) => console.log(groups)}
-/>
+    fields={[{ label: "Status", value: "status" }]}
+    operators={DEFAULT_OPERATORS}
+    onConditionsChange={(groups) => console.log(groups)}
+/>;
 ```
 
 ### `<Input />`
@@ -36,11 +36,11 @@ Renders parsed condition groups as interactive chip rows. Supports editing (chip
 
 ```tsx
 <Output
-  groups={groups}
-  fields={fields}
-  operators={operators}
-  onGroupsChange={setGroups}
-  onUpdateCondition={handleUpdate}
+    groups={groups}
+    fields={fields}
+    operators={operators}
+    onGroupsChange={setGroups}
+    onUpdateCondition={handleUpdate}
 />
 ```
 

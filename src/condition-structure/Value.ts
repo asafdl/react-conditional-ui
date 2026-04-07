@@ -96,7 +96,12 @@ export class Value {
 
         const results = fuse.search(raw);
         if (results.length > 0 && (results[0].score ?? 1) <= 0.4) {
-            log("fuzzy match: raw=%s -> %s (score: %f)", raw, results[0].item.value, results[0].score);
+            log(
+                "fuzzy match: raw=%s -> %s (score: %f)",
+                raw,
+                results[0].item.value,
+                results[0].score,
+            );
             return { matchedOption: results[0].item, isValid: true, score: results[0].score ?? 0 };
         }
 

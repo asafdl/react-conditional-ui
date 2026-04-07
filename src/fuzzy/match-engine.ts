@@ -19,13 +19,42 @@ export type Partition = {
 export type ScoredPartition = Partition & { totalScore: number };
 
 export const NOISE_WORDS = new Set([
-    "when", "if", "the", "where", "show", "that", "then",
-    "a", "an", "for", "while", "can",
-    "expect", "check", "verify", "ensure",
-    "find", "get", "list", "filter", "only", "all",
-    "with", "having", "whose", "which",
-    "given", "assuming", "suppose",
-    "i", "want", "need", "like", "please", "me", "my",
+    "when",
+    "if",
+    "the",
+    "where",
+    "show",
+    "that",
+    "then",
+    "a",
+    "an",
+    "for",
+    "while",
+    "can",
+    "expect",
+    "check",
+    "verify",
+    "ensure",
+    "find",
+    "get",
+    "list",
+    "filter",
+    "only",
+    "all",
+    "with",
+    "having",
+    "whose",
+    "which",
+    "given",
+    "assuming",
+    "suppose",
+    "i",
+    "want",
+    "need",
+    "like",
+    "please",
+    "me",
+    "my",
 ]);
 
 export function stripLeadingNoise(words: string[]): string[] {
@@ -110,7 +139,12 @@ export class MatchEngine {
         }
         const results = this.fieldFuse.search(candidate);
         if (results.length > 0 && (results[0].score ?? 1) <= 0.4) {
-            log("field fuzzy match: %s -> %s (score: %f)", candidate, results[0].item.value, results[0].score);
+            log(
+                "field fuzzy match: %s -> %s (score: %f)",
+                candidate,
+                results[0].item.value,
+                results[0].score,
+            );
             return { option: results[0].item, score: results[0].score ?? 1 };
         }
         return null;
@@ -129,7 +163,12 @@ export class MatchEngine {
         const fuse = (field && this.perFieldOpFuse.get(field.value)) ?? this.opFuse;
         const results = fuse.search(candidate);
         if (results.length > 0 && (results[0].score ?? 1) <= 0.4) {
-            log("operator fuzzy match: %s -> %s (score: %f)", candidate, results[0].item.operator.value, results[0].score);
+            log(
+                "operator fuzzy match: %s -> %s (score: %f)",
+                candidate,
+                results[0].item.operator.value,
+                results[0].score,
+            );
             return { option: results[0].item.operator, score: results[0].score ?? 1 };
         }
         return null;
@@ -152,7 +191,10 @@ export class MatchEngine {
         return false;
     }
 
-    prefixMatch(partial: string, candidates: string[]): { completion: string; display: string } | null {
+    prefixMatch(
+        partial: string,
+        candidates: string[],
+    ): { completion: string; display: string } | null {
         const lower = partial.toLowerCase();
         for (const candidate of candidates) {
             const cl = candidate.toLowerCase();
@@ -175,10 +217,7 @@ export class MatchEngine {
         return {
             ...p,
             totalScore:
-                p.field.score
-                + p.operator.score
-                + p.skipped * MatchEngine.SKIP_PENALTY
-                + valueCost,
+                p.field.score + p.operator.score + p.skipped * MatchEngine.SKIP_PENALTY + valueCost,
         };
     }
 
@@ -191,7 +230,8 @@ export class MatchEngine {
             if (!fieldMatch) continue;
 
             if (i === n) {
-                const defaultOp = this.allowedOpsForField(fieldMatch.option)[0] ?? this.operators[0];
+                const defaultOp =
+                    this.allowedOpsForField(fieldMatch.option)[0] ?? this.operators[0];
                 yield {
                     field: { ...fieldMatch, raw: fieldRaw },
                     operator: { option: defaultOp, score: 1, raw: "" },

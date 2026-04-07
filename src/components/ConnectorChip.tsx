@@ -7,10 +7,7 @@ export type ConnectorChipProps = {
 };
 
 export function ConnectorChip({ connector, onToggle }: ConnectorChipProps) {
-    const chipClass = [
-        "rcui-connector-chip",
-        onToggle ? "rcui-connector-chip--clickable" : "",
-    ]
+    const chipClass = ["rcui-connector-chip", onToggle ? "rcui-connector-chip--clickable" : ""]
         .filter(Boolean)
         .join(" ");
 

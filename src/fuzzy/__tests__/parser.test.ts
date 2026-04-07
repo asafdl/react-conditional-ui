@@ -103,16 +103,12 @@ describe("ConditionParser", () => {
             expectCondition("score is not below 10", "score", "gte", "10"));
         it("is not more than -> lte", () =>
             expectCondition("age is not more than 30", "age", "lte", "30"));
-        it("is at least -> gte", () =>
-            expectCondition("age is at least 18", "age", "gte", "18"));
-        it("is at most -> lte", () =>
-            expectCondition("age is at most 65", "age", "lte", "65"));
+        it("is at least -> gte", () => expectCondition("age is at least 18", "age", "gte", "18"));
+        it("is at most -> lte", () => expectCondition("age is at most 65", "age", "lte", "65"));
         it("is greater than -> gt", () =>
             expectCondition("age is greater than 18", "age", "gt", "18"));
-        it("is less than -> lt", () =>
-            expectCondition("age is less than 5", "age", "lt", "5"));
-        it("is above -> gt", () =>
-            expectCondition("score is above 90", "score", "gt", "90"));
+        it("is less than -> lt", () => expectCondition("age is less than 5", "age", "lt", "5"));
+        it("is above -> gt", () => expectCondition("score is above 90", "score", "gt", "90"));
     });
 
     describe("fuzzy / typo tolerance", () => {
@@ -131,8 +127,7 @@ describe("ConditionParser", () => {
 
     describe("case insensitivity", () => {
         it("uppercase field", () => expectCondition("AGE greater than 18", "age", "gt", "18"));
-        it("mixed case operator", () =>
-            expectCondition("age Greater Than 18", "age", "gt", "18"));
+        it("mixed case operator", () => expectCondition("age Greater Than 18", "age", "gt", "18"));
     });
 
     describe("fuzzy field matching", () => {
@@ -144,10 +139,11 @@ describe("ConditionParser", () => {
     describe("noise word stripping", () => {
         it("when prefix", () => expectCondition("when age is 18", "age", "eq", "18"));
         it("if prefix", () => expectCondition("if age gt 18", "age", "gt", "18"));
-        it("where prefix", () => expectCondition("where status is active", "status", "eq", "active"));
-        it("show the prefix", () => expectCondition("show the age greater than 18", "age", "gt", "18"));
-        it("multiple noise words", () =>
-            expectCondition("if the age is 18", "age", "eq", "18"));
+        it("where prefix", () =>
+            expectCondition("where status is active", "status", "eq", "active"));
+        it("show the prefix", () =>
+            expectCondition("show the age greater than 18", "age", "gt", "18"));
+        it("multiple noise words", () => expectCondition("if the age is 18", "age", "eq", "18"));
     });
 
     describe("complex natural language", () => {
@@ -218,9 +214,7 @@ describe("ConditionParser", () => {
         });
 
         it("parses three-word field", () => {
-            const multiFields: FieldOption[] = [
-                { label: "Date Of Birth", value: "dob" },
-            ];
+            const multiFields: FieldOption[] = [{ label: "Date Of Birth", value: "dob" }];
             const p = new ConditionParser(multiFields, DEFAULT_OPERATORS);
             const result = p.parse("date of birth is 1990")!;
             expect(result.field.value).toBe("dob");
@@ -231,7 +225,11 @@ describe("ConditionParser", () => {
     describe("custom operators", () => {
         it("works with user-defined operators", () => {
             const customOps = [
-                { label: "matches regex", value: "regex", aliases: ["matches regex", "regex", "~"] },
+                {
+                    label: "matches regex",
+                    value: "regex",
+                    aliases: ["matches regex", "regex", "~"],
+                },
             ];
             const p = new ConditionParser(fields, customOps);
             const result = p.parse("name matches regex ^foo")!;
@@ -251,8 +249,7 @@ describe("ConditionParser", () => {
     });
 
     describe("verbose / wordy phrasing", () => {
-        it("is equal to -> eq", () =>
-            expectCondition("age is equal to 18", "age", "eq", "18"));
+        it("is equal to -> eq", () => expectCondition("age is equal to 18", "age", "eq", "18"));
         it("is not equal to -> ne", () =>
             expectCondition("age is not equal to 18", "age", "ne", "18"));
         it("is greater than or equal to -> gte", () =>
@@ -274,30 +271,30 @@ describe("ConditionParser", () => {
             expectCondition("score is higher than 90", "score", "gt", "90"));
         it("is lower than -> lt", () =>
             expectCondition("score is lower than 10", "score", "lt", "10"));
-        it("is fewer than -> lt", () =>
-            expectCondition("age is fewer than 5", "age", "lt", "5"));
+        it("is fewer than -> lt", () => expectCondition("age is fewer than 5", "age", "lt", "5"));
         it("is smaller than -> lt", () =>
             expectCondition("age is smaller than 10", "age", "lt", "10"));
         it("is not smaller than -> gte", () =>
             expectCondition("score is not smaller than 20", "score", "gte", "20"));
-        it("is not under -> gte", () =>
-            expectCondition("age is not under 18", "age", "gte", "18"));
+        it("is not under -> gte", () => expectCondition("age is not under 18", "age", "gte", "18"));
     });
 
     describe("synonym operators", () => {
-        it("exceeds -> gt", () =>
-            expectCondition("score exceeds 100", "score", "gt", "100"));
-        it("under -> lt", () =>
-            expectCondition("age under 18", "age", "lt", "18"));
-        it("has -> contains", () =>
-            expectCondition("name has john", "name", "contains", "john"));
+        it("exceeds -> gt", () => expectCondition("score exceeds 100", "score", "gt", "100"));
+        it("under -> lt", () => expectCondition("age under 18", "age", "lt", "18"));
+        it("has -> contains", () => expectCondition("name has john", "name", "contains", "john"));
         it("not missing -> contains", () =>
             expectCondition("name not missing data", "name", "contains", "data"));
     });
 
     describe("multi-word values", () => {
         it("contains phrase", () =>
-            expectCondition("name contains hello world foo", "name", "contains", "hello world foo"));
+            expectCondition(
+                "name contains hello world foo",
+                "name",
+                "contains",
+                "hello world foo",
+            ));
         it("is not with multi-word value", () =>
             expectCondition("status is not very active", "status", "ne", "very active"));
         it("equals multi-word string", () =>
@@ -351,8 +348,7 @@ describe("ConditionParser", () => {
         it("numeric value with decimals", () =>
             expectCondition("score gt 3.14", "score", "gt", "3.14"));
 
-        it("negative number as value", () =>
-            expectCondition("score gt -5", "score", "gt", "-5"));
+        it("negative number as value", () => expectCondition("score gt -5", "score", "gt", "-5"));
     });
 
     describe("compound parsing (parseCompound)", () => {
@@ -937,7 +933,7 @@ describe("ConditionParser with validateValue callback", () => {
             label: "Email",
             value: "email",
             type: "text",
-            validateValue: (raw) => raw.includes("@") ? true : "Must be a valid email",
+            validateValue: (raw) => (raw.includes("@") ? true : "Must be a valid email"),
         },
     ];
 

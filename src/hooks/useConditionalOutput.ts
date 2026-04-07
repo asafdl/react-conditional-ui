@@ -90,7 +90,12 @@ export function useConditionalOutput({
                         ...g,
                         entries: g.entries.map((e) =>
                             e.id === entryId
-                                ? { ...e, connector: (e.connector === "and" ? "or" : "and") as LogicalOperator }
+                                ? {
+                                      ...e,
+                                      connector: (e.connector === "and"
+                                          ? "or"
+                                          : "and") as LogicalOperator,
+                                  }
                                 : e,
                         ),
                     };
@@ -107,9 +112,7 @@ export function useConditionalOutput({
                     if (g.id !== groupId) return g;
                     return {
                         ...g,
-                        entries: g.entries.map((e) =>
-                            e.id === entryId ? { ...e, condition } : e,
-                        ),
+                        entries: g.entries.map((e) => (e.id === entryId ? { ...e, condition } : e)),
                     };
                 }),
             );
@@ -147,7 +150,12 @@ export function useConditionalOutput({
     );
 
     const moveBetweenGroups = useCallback(
-        (sourceGroupId: string, targetGroupId: string, entryId: string, overEntryId: string | null) => {
+        (
+            sourceGroupId: string,
+            targetGroupId: string,
+            entryId: string,
+            overEntryId: string | null,
+        ) => {
             const sourceGroup = groups.find((g) => g.id === sourceGroupId);
             const targetGroup = groups.find((g) => g.id === targetGroupId);
             if (!sourceGroup || !targetGroup) return;
@@ -208,10 +216,7 @@ export function useConditionalOutput({
         [groups, commit],
     );
 
-    const setGroups = useCallback(
-        (next: ConditionGroup[]) => commit(next),
-        [commit],
-    );
+    const setGroups = useCallback((next: ConditionGroup[]) => commit(next), [commit]);
 
     const mutations: GroupMutations = {
         addGroup,

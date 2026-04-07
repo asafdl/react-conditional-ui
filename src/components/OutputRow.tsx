@@ -34,15 +34,8 @@ export function OutputRow({
     onUpdate,
     onRemove,
 }: OutputRowProps) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-        isOver,
-    } = useSortable({ id });
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } =
+        useSortable({ id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -65,17 +58,19 @@ export function OutputRow({
 
     const editable = !!onUpdate;
 
-    const resolveFieldValues = (f: FieldOption) =>
-        f.fieldValues ?? values?.[f.value];
+    const resolveFieldValues = (f: FieldOption) => f.fieldValues ?? values?.[f.value];
 
-    const resolveOperators = (f: FieldOption) =>
-        f.operators ?? operators;
+    const resolveOperators = (f: FieldOption) => f.operators ?? operators;
 
     const selectField = (f: FieldOption) => {
         onUpdate?.({
             ...condition,
             field: new Field(f.label, f, 0),
-            value: new Value(condition.value.raw, { knownValues: resolveFieldValues(f), fieldType: f.type, validateValue: f.validateValue }),
+            value: new Value(condition.value.raw, {
+                knownValues: resolveFieldValues(f),
+                fieldType: f.type,
+                validateValue: f.validateValue,
+            }),
         });
         closePopover();
     };
@@ -91,25 +86,33 @@ export function OutputRow({
     const submitValue = (raw: string) => {
         onUpdate?.({
             ...condition,
-            value: new Value(raw, { knownValues: resolveFieldValues(condition.field.option!), fieldType: condition.field.option!.type, validateValue: condition.field.option!.validateValue }),
+            value: new Value(raw, {
+                knownValues: resolveFieldValues(condition.field.option!),
+                fieldType: condition.field.option!.type,
+                validateValue: condition.field.option!.validateValue,
+            }),
         });
         closePopover();
     };
 
     const currentField = fields.find((f) => f.value === condition.field.value);
-    const fieldValues = currentField ? resolveFieldValues(currentField) : values?.[condition.field.value];
+    const fieldValues = currentField
+        ? resolveFieldValues(currentField)
+        : values?.[condition.field.value];
     const activeOperators = currentField ? resolveOperators(currentField) : operators;
 
-    const rowClass = [
-        "rcui-row",
-        isOver && !isDragging ? "rcui-row--over" : "",
-    ]
+    const rowClass = ["rcui-row", isOver && !isDragging ? "rcui-row--over" : ""]
         .filter(Boolean)
         .join(" ");
 
     return (
         <div ref={setNodeRef} style={style} className={rowClass}>
-            <div {...attributes} {...listeners} className="rcui-drag-handle" aria-label="drag handle">
+            <div
+                {...attributes}
+                {...listeners}
+                className="rcui-drag-handle"
+                aria-label="drag handle"
+            >
                 <DragIndicatorIcon fontSize="small" />
             </div>
             <Chip
@@ -124,7 +127,9 @@ export function OutputRow({
                 color={condition.operator.isValid ? "secondary" : "error"}
                 variant="filled"
                 onClick={editable ? (e) => openPopover("operator", e.currentTarget) : undefined}
-                className={condition.operator.isValid ? "rcui-chip-operator" : "rcui-chip-operator--error"}
+                className={
+                    condition.operator.isValid ? "rcui-chip-operator" : "rcui-chip-operator--error"
+                }
             />
             <Chip
                 label={condition.value.label || "…"}
@@ -138,68 +143,70 @@ export function OutputRow({
                 </IconButton>
             )}
 
-            {editable && <Popover
-                open={!!popover}
-                anchorEl={popover?.anchor}
-                onClose={closePopover}
-                anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-            >
-                {popover?.target === "field" && (
-                    <List dense>
-                        {fields.map((f) => (
-                            <ListItemButton
-                                key={f.value}
-                                selected={f.value === condition.field.value}
-                                onClick={() => selectField(f)}
-                            >
-                                <ListItemText primary={f.label} />
-                            </ListItemButton>
-                        ))}
-                    </List>
-                )}
-
-                {popover?.target === "operator" && (
-                    <List dense>
-                        {activeOperators.map((op) => (
-                            <ListItemButton
-                                key={op.value}
-                                selected={op.value === condition.operator.value}
-                                onClick={() => selectOperator(op)}
-                            >
-                                <ListItemText primary={op.label} />
-                            </ListItemButton>
-                        ))}
-                    </List>
-                )}
-
-                {popover?.target === "value" &&
-                    (fieldValues ? (
+            {editable && (
+                <Popover
+                    open={!!popover}
+                    anchorEl={popover?.anchor}
+                    onClose={closePopover}
+                    anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                >
+                    {popover?.target === "field" && (
                         <List dense>
-                            {fieldValues.map((v) => (
+                            {fields.map((f) => (
                                 <ListItemButton
-                                    key={v.value}
-                                    selected={v.value === condition.value.value}
-                                    onClick={() => submitValue(v.value)}
+                                    key={f.value}
+                                    selected={f.value === condition.field.value}
+                                    onClick={() => selectField(f)}
                                 >
-                                    <ListItemText primary={v.label} />
+                                    <ListItemText primary={f.label} />
                                 </ListItemButton>
                             ))}
                         </List>
-                    ) : (
-                        <div className="rcui-popover-value-edit">
-                            <TextField
-                                size="small"
-                                autoFocus
-                                value={valueEdit}
-                                onChange={(e) => setValueEdit(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") submitValue(valueEdit);
-                                }}
-                                placeholder="Enter value"
-                            />
-                        </div>
-                    ))}
-            </Popover>}
+                    )}
+
+                    {popover?.target === "operator" && (
+                        <List dense>
+                            {activeOperators.map((op) => (
+                                <ListItemButton
+                                    key={op.value}
+                                    selected={op.value === condition.operator.value}
+                                    onClick={() => selectOperator(op)}
+                                >
+                                    <ListItemText primary={op.label} />
+                                </ListItemButton>
+                            ))}
+                        </List>
+                    )}
+
+                    {popover?.target === "value" &&
+                        (fieldValues ? (
+                            <List dense>
+                                {fieldValues.map((v) => (
+                                    <ListItemButton
+                                        key={v.value}
+                                        selected={v.value === condition.value.value}
+                                        onClick={() => submitValue(v.value)}
+                                    >
+                                        <ListItemText primary={v.label} />
+                                    </ListItemButton>
+                                ))}
+                            </List>
+                        ) : (
+                            <div className="rcui-popover-value-edit">
+                                <TextField
+                                    size="small"
+                                    autoFocus
+                                    value={valueEdit}
+                                    onChange={(e) => setValueEdit(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") submitValue(valueEdit);
+                                    }}
+                                    placeholder="Enter value"
+                                />
+                            </div>
+                        ))}
+                </Popover>
+            )}
         </div>
     );
 }

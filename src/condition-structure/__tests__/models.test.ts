@@ -188,7 +188,7 @@ describe("Value", () => {
         it("can reject a value that fieldType would accept", () => {
             const v = new Value("999", {
                 fieldType: "number",
-                validateValue: (raw) => Number(raw) <= 100 ? true : "Max value is 100",
+                validateValue: (raw) => (Number(raw) <= 100 ? true : "Max value is 100"),
             });
             expect(v.isValid).toBe(false);
             expect(v.errorMessage).toBe("Max value is 100");

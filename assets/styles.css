@@ -25,7 +25,9 @@
     flex-wrap: wrap;
     border-radius: 4px;
     padding: 4px;
-    transition: background-color 0.15s, box-shadow 0.15s;
+    transition:
+        background-color 0.15s,
+        box-shadow 0.15s;
 }
 
 .rcui-row--over {
@@ -119,7 +121,9 @@
     border-color: rgba(255, 255, 255, 0.08) !important;
     background-color: rgba(255, 255, 255, 0.02) !important;
     backdrop-filter: blur(8px);
-    transition: border-color 0.15s, background-color 0.15s;
+    transition:
+        border-color 0.15s,
+        background-color 0.15s;
 }
 
 .rcui-group-paper--over {
@@ -130,7 +134,9 @@
 /* ── Single-row droppable wrapper ── */
 .rcui-droppable-single {
     border-radius: 4px;
-    transition: background-color 0.15s, outline-color 0.15s;
+    transition:
+        background-color 0.15s,
+        outline-color 0.15s;
 }
 
 .rcui-droppable-single--over {
@@ -148,7 +154,9 @@
     border-radius: 4px;
     border: 2px dashed rgba(255, 255, 255, 0.06);
     background-color: transparent;
-    transition: border-color 0.2s, background-color 0.2s;
+    transition:
+        border-color 0.2s,
+        background-color 0.2s;
 }
 
 .rcui-drop-zone--over {

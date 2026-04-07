@@ -7,7 +7,13 @@ import { OutputRow } from "./OutputRow";
 import { ConnectorChip } from "./ConnectorChip";
 import { OutputDndContext, UNGROUP_ZONE_ID } from "./OutputDndContext";
 import { useConditionalOutput } from "../hooks/useConditionalOutput";
-import type { FieldOption, OperatorOption, ConditionGroup, ConditionEntry, GroupConfig } from "../types";
+import type {
+    FieldOption,
+    OperatorOption,
+    ConditionGroup,
+    ConditionEntry,
+    GroupConfig,
+} from "../types";
 import type { GroupMutations } from "../hooks/useConditionalOutput";
 
 export type OutputProps = {
@@ -26,7 +32,8 @@ export type OutputProps = {
 
 export type { GroupMutations };
 
-type ResolvedConfig = Required<Omit<GroupConfig, "label" | "connector">> & Pick<GroupConfig, "label" | "connector">;
+type ResolvedConfig = Required<Omit<GroupConfig, "label" | "connector">> &
+    Pick<GroupConfig, "label" | "connector">;
 
 const DEFAULT_GROUP_CONFIG: Required<Omit<GroupConfig, "label" | "connector">> = {
     editable: true,
@@ -59,21 +66,28 @@ export function Output({
     const renderOverlay = (entry: ConditionEntry) => (
         <div className="rcui-overlay">
             <Chip label={entry.condition.field.label} size="small" className="rcui-chip-field" />
-            <Chip label={entry.condition.operator.label} size="small" className="rcui-chip-operator" />
-            <Chip label={entry.condition.value.label || "…"} size="small" className="rcui-chip-value" />
+            <Chip
+                label={entry.condition.operator.label}
+                size="small"
+                className="rcui-chip-operator"
+            />
+            <Chip
+                label={entry.condition.value.label || "…"}
+                size="small"
+                className="rcui-chip-value"
+            />
         </div>
     );
 
     return (
         <OutputDndContext groups={groups} mutations={mutations} renderOverlay={renderOverlay}>
             <DropZone className={rootClass} style={style}>
-                {groups.length === 0
-                    ? (
-                        <Typography variant="body2" color="text.secondary">
-                            Parsed condition will appear here…
-                        </Typography>
-                    )
-                    : groups.map((group) => (
+                {groups.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                        Parsed condition will appear here…
+                    </Typography>
+                ) : (
+                    groups.map((group) => (
                         <GroupCard
                             key={group.id}
                             group={group}
@@ -83,7 +97,8 @@ export function Output({
                             config={resolveConfig(group.config, effectiveDefault)}
                             mutations={mutations}
                         />
-                    ))}
+                    ))
+                )}
             </DropZone>
         </OutputDndContext>
     );
@@ -156,10 +171,7 @@ function GroupCard({
     );
 
     if (!isMulti) {
-        const singleClass = [
-            "rcui-droppable-single",
-            isOver ? "rcui-droppable-single--over" : "",
-        ]
+        const singleClass = ["rcui-droppable-single", isOver ? "rcui-droppable-single--over" : ""]
             .filter(Boolean)
             .join(" ");
 
@@ -170,10 +182,7 @@ function GroupCard({
         );
     }
 
-    const paperClass = [
-        "rcui-group-paper",
-        isOver ? "rcui-group-paper--over" : "",
-    ]
+    const paperClass = ["rcui-group-paper", isOver ? "rcui-group-paper--over" : ""]
         .filter(Boolean)
         .join(" ");
 
@@ -199,11 +208,7 @@ function DropZone({
 }) {
     const { setNodeRef, isOver } = useDroppable({ id: UNGROUP_ZONE_ID });
 
-    const zoneClass = [
-        "rcui-drop-zone",
-        isOver ? "rcui-drop-zone--over" : "",
-        className,
-    ]
+    const zoneClass = ["rcui-drop-zone", isOver ? "rcui-drop-zone--over" : "", className]
         .filter(Boolean)
         .join(" ");
 

@@ -42,7 +42,10 @@ export function useConditionalInput({
         const group = parser.parseCompound(text);
         if (group) {
             const hasInvalid = group.entries.some(
-                (e) => !e.condition.field.isValid || !e.condition.operator.isValid || !e.condition.value.isValid,
+                (e) =>
+                    !e.condition.field.isValid ||
+                    !e.condition.operator.isValid ||
+                    !e.condition.value.isValid,
             );
             if (!hasInvalid) {
                 onSubmit?.(group);
@@ -55,10 +58,7 @@ export function useConditionalInput({
         setDiagnostics(parser.diagnose(text));
     }, [text, parser, value, onChange, onSubmit]);
 
-    const getSuggestion = useCallback(
-        (input: string) => parser.getSuggestion(input),
-        [parser],
-    );
+    const getSuggestion = useCallback((input: string) => parser.getSuggestion(input), [parser]);
 
     return { text, diagnostics, handleChange, handleSubmit, getSuggestion };
 }
