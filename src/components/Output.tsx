@@ -6,115 +6,130 @@ import { useDroppable } from "@dnd-kit/core";
 import { OutputRow } from "./OutputRow";
 import { ConnectorChip } from "./ConnectorChip";
 import { OutputDndContext, UNGROUP_ZONE_ID } from "./OutputDndContext";
-import type { FieldOption, OperatorOption, ParsedCondition, ConditionGroup, ConditionEntry } from "../types";
-import type { GroupMutations } from "./OutputDndContext";
+import { useConditionalOutput } from "../hooks/useConditionalOutput";
+import type { FieldOption, OperatorOption, ConditionGroup, ConditionEntry, GroupConfig } from "../types";
+import type { GroupMutations } from "../hooks/useConditionalOutput";
 
 export type OutputProps = {
-    groups: ConditionGroup[];
     fields: FieldOption[];
     operators: OperatorOption[];
     values?: Record<string, FieldOption[]>;
+    /** Controlled groups. Omit for uncontrolled (internal state). */
+    groups?: ConditionGroup[];
+    /** Fires whenever groups change (works in both controlled and uncontrolled mode). */
     onGroupsChange?: (groups: ConditionGroup[]) => void;
-    onUpdateCondition?: (groupId: string, entryId: string, condition: ParsedCondition) => void;
+    /** Default config applied to every group unless overridden by group.config. */
+    defaultGroupConfig?: GroupConfig;
+    className?: string;
+    style?: React.CSSProperties;
+};
+
+export type { GroupMutations };
+
+type ResolvedConfig = Required<Omit<GroupConfig, "label" | "connector">> & Pick<GroupConfig, "label" | "connector">;
+
+const DEFAULT_GROUP_CONFIG: Required<Omit<GroupConfig, "label" | "connector">> = {
+    editable: true,
+    removable: true,
+    variant: "outlined",
 };
 
 export function Output({
-    groups,
     fields,
     operators,
     values,
+    groups: controlledGroups,
     onGroupsChange,
-    onUpdateCondition,
+    defaultGroupConfig,
+    className,
+    style,
 }: OutputProps) {
-    if (groups.length === 0) {
-        return (
-            <Typography variant="body2" color="text.secondary">
-                Parsed condition will appear here…
-            </Typography>
-        );
-    }
+    const { groups, mutations } = useConditionalOutput({
+        groups: controlledGroups,
+        onGroupsChange,
+    });
 
-    const editable = !!onGroupsChange;
+    const readOnly = controlledGroups !== undefined && !onGroupsChange;
+    const effectiveDefault: GroupConfig | undefined = readOnly
+        ? { editable: false, removable: false, ...defaultGroupConfig }
+        : defaultGroupConfig;
 
-    if (!editable) {
-        return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {groups.map((group) => (
-                    <GroupCard key={group.id} group={group} fields={fields} operators={operators} values={values} />
-                ))}
-            </div>
-        );
-    }
+    const rootClass = ["rcui-output", className].filter(Boolean).join(" ");
 
     const renderOverlay = (entry: ConditionEntry) => (
         <div className="rcui-overlay">
-            <Chip
-                label={entry.condition.field.label}
-                size="small"
-                className="rcui-chip-field"
-            />
-            <Chip
-                label={entry.condition.operator.label}
-                size="small"
-                className="rcui-chip-operator"
-            />
-            <Chip
-                label={entry.condition.value.label || "…"}
-                size="small"
-                className="rcui-chip-value"
-            />
+            <Chip label={entry.condition.field.label} size="small" className="rcui-chip-field" />
+            <Chip label={entry.condition.operator.label} size="small" className="rcui-chip-operator" />
+            <Chip label={entry.condition.value.label || "…"} size="small" className="rcui-chip-value" />
         </div>
     );
 
     return (
-        <OutputDndContext groups={groups} onGroupsChange={onGroupsChange} renderOverlay={renderOverlay}>
-            {(mutations) => (
-                <UngroupDropZone>
-                    {groups.map((group) => (
-                        <DroppableGroup
+        <OutputDndContext groups={groups} mutations={mutations} renderOverlay={renderOverlay}>
+            <DropZone className={rootClass} style={style}>
+                {groups.length === 0
+                    ? (
+                        <Typography variant="body2" color="text.secondary">
+                            Parsed condition will appear here…
+                        </Typography>
+                    )
+                    : groups.map((group) => (
+                        <GroupCard
                             key={group.id}
                             group={group}
                             fields={fields}
                             operators={operators}
                             values={values}
+                            config={resolveConfig(group.config, effectiveDefault)}
                             mutations={mutations}
-                            onUpdateCondition={onUpdateCondition}
                         />
                     ))}
-                </UngroupDropZone>
-            )}
+            </DropZone>
         </OutputDndContext>
     );
 }
 
-function DroppableGroup({
+function resolveConfig(groupConfig?: GroupConfig, defaultConfig?: GroupConfig): ResolvedConfig {
+    return { ...DEFAULT_GROUP_CONFIG, ...defaultConfig, ...groupConfig };
+}
+
+function GroupCard({
     group,
     fields,
     operators,
     values,
+    config,
     mutations,
-    onUpdateCondition,
 }: {
     group: ConditionGroup;
     fields: FieldOption[];
     operators: OperatorOption[];
     values?: Record<string, FieldOption[]>;
+    config: ResolvedConfig;
     mutations: GroupMutations;
-    onUpdateCondition?: (groupId: string, entryId: string, condition: ParsedCondition) => void;
 }) {
     const allIds = group.entries.map((e) => e.id);
     const isMulti = group.entries.length > 1;
     const { setNodeRef, isOver } = useDroppable({ id: `group:${group.id}` });
 
-    const content = (
+    const entries = (
         <SortableContext items={allIds} strategy={verticalListSortingStrategy}>
+            {config.label && (
+                <Typography variant="caption" color="text.secondary" className="rcui-group-label">
+                    {config.label}
+                </Typography>
+            )}
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {group.entries.map((entry, idx) => (
                     <div key={entry.id}>
                         {idx > 0 && (
                             <ConnectorChip
                                 connector={entry.connector}
-                                onToggle={() => mutations.toggleConnector(group.id, entry.id)}
+                                onToggle={
+                                    config.editable
+                                        ? () => mutations.toggleConnector(group.id, entry.id)
+                                        : undefined
+                                }
                             />
                         )}
                         <OutputRow
@@ -124,11 +139,15 @@ function DroppableGroup({
                             operators={operators}
                             values={values}
                             onUpdate={
-                                onUpdateCondition
-                                    ? (c) => onUpdateCondition(group.id, entry.id, c)
+                                config.editable
+                                    ? (c) => mutations.updateCondition(group.id, entry.id, c)
                                     : undefined
                             }
-                            onRemove={() => mutations.removeEntry(group.id, entry.id)}
+                            onRemove={
+                                config.removable
+                                    ? () => mutations.removeEntry(group.id, entry.id)
+                                    : undefined
+                            }
                         />
                     </div>
                 ))}
@@ -136,89 +155,61 @@ function DroppableGroup({
         </SortableContext>
     );
 
-    if (isMulti) {
-        const paperClass = [
-            "rcui-group-paper",
-            isOver ? "rcui-group-paper--over" : "",
+    if (!isMulti) {
+        const singleClass = [
+            "rcui-droppable-single",
+            isOver ? "rcui-droppable-single--over" : "",
         ]
             .filter(Boolean)
             .join(" ");
 
         return (
-            <Paper ref={setNodeRef} variant="outlined" className={paperClass}>
-                {content}
-            </Paper>
+            <div ref={setNodeRef} className={singleClass}>
+                {entries}
+            </div>
         );
     }
 
-    const singleClass = [
-        "rcui-droppable-single",
-        isOver ? "rcui-droppable-single--over" : "",
+    const paperClass = [
+        "rcui-group-paper",
+        isOver ? "rcui-group-paper--over" : "",
     ]
         .filter(Boolean)
         .join(" ");
 
     return (
-        <div ref={setNodeRef} className={singleClass}>
-            {content}
-        </div>
+        <Paper
+            ref={setNodeRef}
+            variant={config.variant as "outlined" | "elevation"}
+            className={paperClass}
+        >
+            {entries}
+        </Paper>
     );
 }
 
-function UngroupDropZone({ children }: { children: React.ReactNode }) {
+function DropZone({
+    children,
+    className,
+    style,
+}: {
+    children: React.ReactNode;
+    className?: string;
+    style?: React.CSSProperties;
+}) {
     const { setNodeRef, isOver } = useDroppable({ id: UNGROUP_ZONE_ID });
 
     const zoneClass = [
         "rcui-drop-zone",
         isOver ? "rcui-drop-zone--over" : "",
+        className,
     ]
         .filter(Boolean)
         .join(" ");
 
     return (
-        <div ref={setNodeRef} className={zoneClass}>
+        <div ref={setNodeRef} className={zoneClass} style={style}>
             {children}
         </div>
     );
-}
-
-function GroupCard({
-    group,
-    fields,
-    operators,
-    values,
-}: {
-    group: ConditionGroup;
-    fields: FieldOption[];
-    operators: OperatorOption[];
-    values?: Record<string, FieldOption[]>;
-}) {
-    const isMulti = group.entries.length > 1;
-    const content = (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {group.entries.map((entry, idx) => (
-                <div key={entry.id}>
-                    {idx > 0 && <ConnectorChip connector={entry.connector} />}
-                    <OutputRow
-                        id={entry.id}
-                        condition={entry.condition}
-                        fields={fields}
-                        operators={operators}
-                        values={values}
-                        draggable={false}
-                    />
-                </div>
-            ))}
-        </div>
-    );
-
-    if (isMulti) {
-        return (
-            <Paper variant="outlined" className="rcui-group-paper">
-                {content}
-            </Paper>
-        );
-    }
-
-    return content;
 }

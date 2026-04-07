@@ -1,3 +1,4 @@
+import type React from "react";
 import type { Field, Operator, Value } from "./condition-structure";
 
 export type OperatorOption = {
@@ -32,9 +33,23 @@ export type ConditionEntry = {
     connector: LogicalOperator;
 };
 
+export type GroupConfig = {
+    /** Logical connector shown between this group and the previous one. Defaults to "and". */
+    connector?: LogicalOperator;
+    /** Whether condition chips can be edited via popover. Defaults to true. */
+    editable?: boolean;
+    /** Whether entries can be removed from this group. Defaults to true. */
+    removable?: boolean;
+    /** Visual variant of the group card. Defaults to "outlined". */
+    variant?: "outlined" | "filled";
+    /** Optional label displayed above the group. */
+    label?: string;
+};
+
 export type ConditionGroup = {
     id: string;
     entries: ConditionEntry[];
+    config?: GroupConfig;
 };
 
 export type Diagnostic = {
@@ -50,4 +65,6 @@ export type ConditionalUIProps = {
     value?: string;
     onChange?: (raw: string) => void;
     onConditionsChange?: (groups: ConditionGroup[]) => void;
+    className?: string;
+    style?: React.CSSProperties;
 };

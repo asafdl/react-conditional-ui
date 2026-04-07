@@ -5,16 +5,68 @@ import IconButton from "@mui/material/IconButton";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import Tooltip from "@mui/material/Tooltip";
-import type { Diagnostic } from "../types";
+import { useConditionalInput } from "../hooks/useConditionalInput";
+import type { FieldOption, OperatorOption, ConditionGroup, Diagnostic } from "../types";
 
-export type InputProps = {
+type BaseProps = {
+    placeholder?: string;
+    className?: string;
+    style?: React.CSSProperties;
+};
+
+type StandaloneProps = BaseProps & {
+    fields: FieldOption[];
+    operators?: OperatorOption[];
+    values?: Record<string, FieldOption[]>;
+    value?: string;
+    onChange?: (value: string) => void;
+    onSubmit?: (group: ConditionGroup) => void;
+};
+
+type ControlledProps = BaseProps & {
+    fields?: undefined;
+    value: string;
+    onChange: (value: string) => void;
+    onSubmit: () => void;
+    getSuggestion?: (text: string) => { completion: string; display: string } | null;
+    diagnostics?: Diagnostic[];
+};
+
+export type InputProps = StandaloneProps | ControlledProps;
+
+type InputViewProps = {
     value: string;
     onChange: (value: string) => void;
     onSubmit: () => void;
     placeholder?: string;
     getSuggestion?: (text: string) => { completion: string; display: string } | null;
     diagnostics?: Diagnostic[];
+    className?: string;
+    style?: React.CSSProperties;
 };
+
+export function Input(props: InputProps) {
+    if (isStandalone(props)) {
+        return <StandaloneInput {...props} />;
+    }
+
+    return (
+        <InputView
+            value={props.value}
+            onChange={props.onChange}
+            onSubmit={props.onSubmit}
+            getSuggestion={props.getSuggestion}
+            diagnostics={props.diagnostics}
+            placeholder={props.placeholder}
+            className={props.className}
+            style={props.style}
+        />
+    );
+}
+
+function isStandalone(props: InputProps): props is StandaloneProps {
+    return props.fields !== undefined;
+}
 
 function buildOverlaySegments(value: string, diagnostics: Diagnostic[]) {
     const sorted = [...diagnostics].sort((a, b) => a.start - b.start);
@@ -29,14 +81,50 @@ function buildOverlaySegments(value: string, diagnostics: Diagnostic[]) {
     return segments;
 }
 
-export function Input({
+function StandaloneInput({
+    fields,
+    operators,
+    values,
+    value: controlledValue,
+    onChange: controlledOnChange,
+    onSubmit: onGroupParsed,
+    placeholder,
+    className,
+    style,
+}: StandaloneProps) {
+    const { text, diagnostics, handleChange, handleSubmit, getSuggestion } = useConditionalInput({
+        fields,
+        operators,
+        values,
+        value: controlledValue,
+        onChange: controlledOnChange,
+        onSubmit: onGroupParsed,
+    });
+
+    return (
+        <InputView
+            value={text}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            getSuggestion={getSuggestion}
+            diagnostics={diagnostics}
+            placeholder={placeholder}
+            className={className}
+            style={style}
+        />
+    );
+}
+
+function InputView({
     value,
     onChange,
     onSubmit,
     placeholder = "e.g. age greater than 18",
     getSuggestion,
     diagnostics = [],
-}: InputProps) {
+    className,
+    style,
+}: InputViewProps) {
     const ghost = useMemo(() => {
         if (!getSuggestion || !value) return null;
         const result = getSuggestion(value);
@@ -76,7 +164,7 @@ export function Input({
     const overlaySegments = hasErrors ? buildOverlaySegments(value, diagnostics) : null;
 
     return (
-        <div className="rcui-input-wrapper">
+        <div className={["rcui-input-wrapper", className].filter(Boolean).join(" ")} style={style}>
             <TextField
                 fullWidth
                 variant="outlined"

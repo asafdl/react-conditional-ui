@@ -1,9 +1,8 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
 import { Input } from "./Input";
 import { Output } from "./Output";
-import { ConditionParser } from "../fuzzy/parser";
+import { useConditionalOutput } from "../hooks/useConditionalOutput";
 import { DEFAULT_OPERATORS } from "../condition-structure";
-import type { ConditionalUIProps, ConditionGroup, ParsedCondition, Diagnostic } from "../types";
+import type { ConditionalUIProps } from "../types";
 
 export function ConditionalUI({
     fields,
@@ -12,83 +11,31 @@ export function ConditionalUI({
     value,
     onChange,
     onConditionsChange,
+    className,
+    style,
 }: ConditionalUIProps) {
-    const [internal, setInternal] = useState("");
-    const [groups, setGroups] = useState<ConditionGroup[]>([]);
-    const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
-    const text = value ?? internal;
+    const { groups, mutations } = useConditionalOutput({
+        onGroupsChange: onConditionsChange,
+    });
 
-    const parser = useMemo(
-        () => new ConditionParser(fields, operators, values),
-        [fields, operators, values],
-    );
-
-    useEffect(() => {
-        onConditionsChange?.(groups);
-    }, [groups, onConditionsChange]);
-
-    const handleChange = useCallback(
-        (next: string) => {
-            if (value === undefined) setInternal(next);
-            onChange?.(next);
-            setDiagnostics([]);
-        },
-        [value, onChange],
-    );
-
-    const handleSubmit = useCallback(() => {
-        const group = parser.parseCompound(text);
-        if (group) {
-            const hasInvalid = group.entries.some(
-                (e) => !e.condition.field.isValid || !e.condition.operator.isValid || !e.condition.value.isValid,
-            );
-            if (!hasInvalid) {
-                setGroups((prev) => [...prev, group]);
-                setDiagnostics([]);
-                if (value === undefined) setInternal("");
-                onChange?.("");
-                return;
-            }
-        }
-        setDiagnostics(parser.diagnose(text));
-    }, [text, parser, value, onChange]);
-
-    const getSuggestion = useCallback(
-        (text: string) => parser.getSuggestion(text),
-        [parser],
-    );
-
-    const handleGroupsChange = useCallback((newGroups: ConditionGroup[]) => {
-        setGroups(newGroups);
-    }, []);
-
-    const handleUpdateCondition = useCallback(
-        (groupId: string, entryId: string, condition: ParsedCondition) => {
-            setGroups((prev) =>
-                prev.map((g) => {
-                    if (g.id !== groupId) return g;
-                    return {
-                        ...g,
-                        entries: g.entries.map((e) =>
-                            e.id === entryId ? { ...e, condition } : e,
-                        ),
-                    };
-                }),
-            );
-        },
-        [],
-    );
+    const rootClass = ["rcui-root", className].filter(Boolean).join(" ");
 
     return (
-        <div className="rcui-root">
-            <Input value={text} onChange={handleChange} onSubmit={handleSubmit} getSuggestion={getSuggestion} diagnostics={diagnostics} />
+        <div className={rootClass} style={style}>
+            <Input
+                fields={fields}
+                operators={operators}
+                values={values}
+                value={value}
+                onChange={onChange}
+                onSubmit={mutations.addGroup}
+            />
             <Output
                 groups={groups}
                 fields={fields}
                 operators={operators}
                 values={values}
-                onGroupsChange={handleGroupsChange}
-                onUpdateCondition={handleUpdateCondition}
+                onGroupsChange={mutations.setGroups}
             />
         </div>
     );

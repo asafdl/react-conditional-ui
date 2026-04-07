@@ -263,13 +263,13 @@ describe("Output standalone (read-only)", () => {
         expect(screen.getAllByText("Status")).toHaveLength(2);
     });
 
-    it("does not render drag handles in read-only mode", () => {
+    it("renders drag handles in read-only mode", () => {
         const groups = [makeGroup([
             makeEntry(makeCondition("age", "Age", "eq", "equals", "10")),
         ])];
         render(<Output groups={groups} fields={fields} operators={DEFAULT_OPERATORS} />);
 
-        expect(screen.queryByLabelText("drag handle")).not.toBeInTheDocument();
+        expect(screen.getByLabelText("drag handle")).toBeInTheDocument();
     });
 });
 
@@ -282,7 +282,6 @@ describe("OutputRow standalone (read-only)", () => {
                 condition={condition}
                 fields={fields}
                 operators={DEFAULT_OPERATORS}
-                draggable={false}
             />,
         );
 

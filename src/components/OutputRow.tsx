@@ -23,7 +23,6 @@ export type OutputRowProps = {
     values?: Record<string, FieldOption[]>;
     onUpdate?: (condition: Condition) => void;
     onRemove?: () => void;
-    draggable?: boolean;
 };
 
 export function OutputRow({
@@ -34,7 +33,6 @@ export function OutputRow({
     values,
     onUpdate,
     onRemove,
-    draggable = true,
 }: OutputRowProps) {
     const {
         attributes,
@@ -44,7 +42,7 @@ export function OutputRow({
         transition,
         isDragging,
         isOver,
-    } = useSortable({ id, disabled: !draggable });
+    } = useSortable({ id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -111,11 +109,9 @@ export function OutputRow({
 
     return (
         <div ref={setNodeRef} style={style} className={rowClass}>
-            {draggable && (
-                <div {...attributes} {...listeners} className="rcui-drag-handle" aria-label="drag handle">
-                    <DragIndicatorIcon fontSize="small" />
-                </div>
-            )}
+            <div {...attributes} {...listeners} className="rcui-drag-handle" aria-label="drag handle">
+                <DragIndicatorIcon fontSize="small" />
+            </div>
             <Chip
                 label={condition.field.label}
                 color={condition.field.isValid ? "primary" : "error"}
