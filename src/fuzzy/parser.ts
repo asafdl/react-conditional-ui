@@ -101,70 +101,95 @@ export class ConditionParser extends MatchEngine {
         return { segments: filtered, connector };
     }
 
-    public getSuggestion(text: string): { completion: string; display: string } | null {
+    public getCompletions(text: string, limit = 6): { completion: string; display: string }[] {
         const { segments } = this.splitOnConjunction(text);
         const last = segments[segments.length - 1];
         const trailingSpace = /\s$/.test(text) ? " " : "";
 
-        const direct = this.suggestForSegment(last + trailingSpace);
-        if (direct) return direct;
+        const direct = this.completionsForSegment(last + trailingSpace, limit);
+        if (direct.length > 0) return direct;
 
-        if (segments.length < 2) return null;
+        if (segments.length < 2) return [];
         const resolved = this.resolveSegments(segments.slice(0, -1).join(" and "));
         const previous = resolved[resolved.length - 1];
-        if (!previous) return null;
+        if (!previous) return [];
 
         const inherited = `${previous.field.raw} ${previous.operator.raw} ${last}${trailingSpace}`;
-        return this.suggestForSegment(inherited);
+        return this.completionsForSegment(inherited, limit);
     }
 
-    private suggestForSegment(text: string): { completion: string; display: string } | null {
+    public getSuggestion(text: string): { completion: string; display: string } | null {
+        if (!text.trim()) return null;
+        const results = this.getCompletions(text, 1);
+        if (results.length === 0) return null;
+        const r = results[0];
+        if (r.completion === r.display && /\s$/.test(text)) return null;
+        return r;
+    }
+
+    private completionsForSegment(
+        text: string,
+        limit: number,
+    ): { completion: string; display: string }[] {
         const input = text.trimStart().toLowerCase();
-        if (!input) return null;
+        if (!input) {
+            return this.fields
+                .slice(0, limit)
+                .map((f) => ({ completion: f.label, display: f.label }));
+        }
 
         const endsWithSpace = /\s$/.test(input);
         const words = input.split(/\s+/).filter(Boolean);
-        if (words.length === 0) return null;
+        if (words.length === 0) return [];
 
         const best = this.findBestPartition(words);
 
         if (!best) {
-            if (endsWithSpace) return null;
-            return this.prefixMatch(
+            if (endsWithSpace) return [];
+            return this.prefixMatches(
                 words.join(" "),
                 this.fields.map((f) => f.label),
+                limit,
             );
         }
 
         if (!best.operator.raw) {
             if (endsWithSpace) {
                 const ops = this.allowedOpsForField(best.field.option);
-                return this.prefixMatch(
-                    "",
-                    ops.flatMap((op) => op.aliases),
-                );
+                return ops
+                    .slice(0, limit)
+                    .map((op) => ({ completion: op.label, display: op.label }));
             }
-            return this.prefixMatch(
+            return this.prefixMatches(
                 words.join(" "),
                 this.fields.map((f) => f.label),
+                limit,
             );
         }
 
         if (!best.valueRaw) {
-            if (endsWithSpace) return null;
+            if (endsWithSpace) {
+                const fieldValues =
+                    best.field.option.fieldValues ?? this.knownValues?.[best.field.option.value];
+                if (!fieldValues?.length) return [];
+                return fieldValues
+                    .slice(0, limit)
+                    .map((v) => ({ completion: v.label, display: v.label }));
+            }
             const ops = this.allowedOpsForField(best.field.option);
             const aliases = ops.flatMap((op) => op.aliases);
             const opPartial = words.slice(words.indexOf(best.operator.raw.split(" ")[0])).join(" ");
-            return this.prefixMatch(opPartial || best.operator.raw, aliases);
+            return this.prefixMatches(opPartial || best.operator.raw, aliases, limit);
         }
 
-        if (endsWithSpace) return null;
+        if (endsWithSpace) return [];
         const fieldValues =
             best.field.option.fieldValues ?? this.knownValues?.[best.field.option.value];
-        if (!fieldValues?.length) return null;
-        return this.prefixMatch(
+        if (!fieldValues?.length) return [];
+        return this.prefixMatches(
             best.valueRaw,
             fieldValues.map((v) => v.label),
+            limit,
         );
     }
 

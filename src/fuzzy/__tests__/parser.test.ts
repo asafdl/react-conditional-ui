@@ -861,6 +861,14 @@ describe("ConditionParser with field types", () => {
             expect(r!.value.isValid).toBe(true);
         });
 
+        it("parses 'is not' as ne on enum field", () => {
+            const r = tp.parse("status is not ready");
+            expect(r).not.toBeNull();
+            expect(r!.operator.value).toBe("ne");
+            expect(r!.value.value).toBe("ready");
+            expect(r!.value.isValid).toBe(true);
+        });
+
         it("rejects gt on enum field (operator filtered)", () => {
             const r = tp.parse("status gt ready");
             expect(r).toBeNull();
@@ -903,15 +911,20 @@ describe("ConditionParser with field types", () => {
     });
 
     describe("suggestions with types", () => {
-        it("suggests only type-appropriate operators for enum field", () => {
-            const s = tp.getSuggestion("status ");
-            expect(s).not.toBeNull();
-            expect(s!.display.toLowerCase()).not.toMatch(/greater|less/);
+        it("does not ghost-suggest operators after trailing space (dropdown handles it)", () => {
+            expect(tp.getSuggestion("status ")).toBeNull();
+            expect(tp.getSuggestion("age ")).toBeNull();
         });
 
-        it("suggests operators for number field", () => {
-            const s = tp.getSuggestion("age ");
-            expect(s).not.toBeNull();
+        it("offers type-appropriate operators via getCompletions for enum field", () => {
+            const items = tp.getCompletions("status ");
+            expect(items.length).toBeGreaterThan(0);
+            expect(items.every((i) => !i.display.match(/greater|less/i))).toBe(true);
+        });
+
+        it("offers operators via getCompletions for number field", () => {
+            const items = tp.getCompletions("age ");
+            expect(items.length).toBeGreaterThan(0);
         });
     });
 });

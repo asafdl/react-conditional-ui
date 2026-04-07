@@ -59,6 +59,10 @@ export function useConditionalInput({
     }, [text, parser, value, onChange, onSubmit]);
 
     const getSuggestion = useCallback((input: string) => parser.getSuggestion(input), [parser]);
+    const getCompletions = useCallback(
+        (input: string, limit?: number) => parser.getCompletions(input, limit),
+        [parser],
+    );
 
-    return { text, diagnostics, handleChange, handleSubmit, getSuggestion };
+    return { text, diagnostics, handleChange, handleSubmit, getSuggestion, getCompletions };
 }

@@ -64,9 +64,9 @@ export function stripLeadingNoise(words: string[]): string[] {
 }
 
 const TYPE_ALLOWED_OPS: Record<FieldType, Set<string>> = {
-    number: new Set(["eq", "neq", "gt", "lt", "gte", "lte"]),
-    enum: new Set(["eq", "neq"]),
-    text: new Set(["eq", "neq", "contains", "starts_with"]),
+    number: new Set(["eq", "ne", "gt", "lt", "gte", "lte"]),
+    enum: new Set(["eq", "ne"]),
+    text: new Set(["eq", "ne", "contains", "starts_with"]),
 };
 
 export class MatchEngine {
@@ -195,14 +195,25 @@ export class MatchEngine {
         partial: string,
         candidates: string[],
     ): { completion: string; display: string } | null {
+        const matches = this.prefixMatches(partial, candidates);
+        return matches.length > 0 ? matches[0] : null;
+    }
+
+    prefixMatches(
+        partial: string,
+        candidates: string[],
+        limit = 6,
+    ): { completion: string; display: string }[] {
         const lower = partial.toLowerCase();
+        const results: { completion: string; display: string }[] = [];
         for (const candidate of candidates) {
             const cl = candidate.toLowerCase();
             if (cl.startsWith(lower) && cl !== lower) {
-                return { completion: cl.slice(lower.length), display: candidate };
+                results.push({ completion: cl.slice(lower.length), display: candidate });
+                if (results.length >= limit) break;
             }
         }
-        return null;
+        return results;
     }
 
     private static readonly SKIP_PENALTY = 0.01;

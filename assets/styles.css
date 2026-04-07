@@ -164,12 +164,52 @@
     background-color: rgba(124, 138, 255, 0.06);
 }
 
-/* ── Text overlay (ghost + squiggly) ── */
+/* ── Input wrapper ── */
 .rcui-input-wrapper {
     position: relative;
 }
 
-.rcui-overlay {
+/* ── Ghost input inner container ── */
+.rcui-input-inner {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+}
+
+.rcui-input-inner > input {
+    width: 100%;
+    background: transparent;
+}
+
+/* Hidden mirror span: same font as input, used to measure text width */
+.rcui-mirror {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 0;
+    overflow: hidden;
+    white-space: pre;
+    pointer-events: none;
+    font: inherit;
+    letter-spacing: inherit;
+    visibility: hidden;
+}
+
+/* Ghost completion text, positioned right after the typed text */
+.rcui-ghost {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: pre;
+    pointer-events: none;
+    font: inherit;
+    letter-spacing: inherit;
+    color: rgba(255, 255, 255, 0.25);
+}
+
+/* Squiggly underline layer, overlaid on top of the input text */
+.rcui-squiggly-layer {
     position: absolute;
     top: 0;
     left: 0;
@@ -177,25 +217,19 @@
     bottom: 0;
     display: flex;
     align-items: center;
-    padding: 8.5px 14px;
     pointer-events: none;
     font: inherit;
-    font-size: 0.875rem;
-    line-height: 1.4375em;
-    letter-spacing: 0.00938em;
+    letter-spacing: inherit;
     white-space: pre;
     color: transparent;
-    overflow: hidden;
+    overflow: visible;
 }
 
-.rcui-overlay .rcui-ghost {
-    color: rgba(255, 255, 255, 0.25);
-}
-
-.rcui-overlay .rcui-squiggly {
+.rcui-squiggly {
     text-decoration: underline wavy #f5c542;
-    text-underline-offset: 3px;
+    text-underline-offset: 1px;
     text-decoration-thickness: 1px;
+    text-decoration-skip-ink: none;
 }
 
 /* ── Input adornment icons ── */
@@ -205,6 +239,40 @@
 
 .rcui-adornment-error {
     color: #f5c542 !important;
+}
+
+/* ── Autocomplete dropdown ── */
+.rcui-completions {
+    position: absolute;
+    top: 100%;
+    z-index: 1300;
+    margin: 4px 0 0;
+    padding: 4px 0;
+    list-style: none;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: #212738;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    max-height: 240px;
+    overflow-y: auto;
+    width: max-content;
+    min-width: 120px;
+    max-width: 280px;
+}
+
+.rcui-completion-item {
+    padding: 6px 14px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rcui-completion-item--active {
+    background-color: rgba(124, 138, 255, 0.18);
+    color: #e6edf3;
 }
 
 /* ── Popover value edit ── */

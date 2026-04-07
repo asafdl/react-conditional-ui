@@ -22,7 +22,8 @@ const values = {
 
 afterEach(cleanup);
 
-const getInput = () => screen.getByPlaceholderText("e.g. age greater than 18");
+const getInput = () =>
+    screen.getByPlaceholderText("e.g. age greater than 18, ctrl+space for suggestions");
 
 const submitCondition = (text: string) => {
     const input = getInput();
