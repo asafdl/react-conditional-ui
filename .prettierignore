@@ -3,3 +3,5 @@ coverage
 node_modules
 package-lock.json
 demo/package-lock.json
+README.md
+CHANGELOG.md
