@@ -144,7 +144,14 @@ Available namespaces: `parser`, `match-engine`.
 
 ## Tech debt
 
-- `matchOperator` in `MatchEngine` uses a hard word-count gate (candidate and alias must have the same number of words) to prevent partial matches like `"greater"` → `"greater than"`. This should be replaced with a scoring penalty so the candidate still enters the ranking but loses to longer, better matches naturally.
+- `matchOperator` hard word-count gate should be a scoring penalty instead
+- `match-engine.ts` mixes fuzzy matching with parsing logic (`parse`, `identifyField`, `resolveOperator`, `getOperatorCandidates`) — extract parsing into its own module
+- `SegmentResolver.resolve` is ~80 lines with deep nesting — break down into smaller functions
+- `SuggestionsProvider.completionsForSegment` is ~80 lines with repetitive branching — simplify
+- `stripLeadingNoise` + `NOISE_WORDS` in `word-utils.ts` is domain-specific, not a word utility
+- `segments.ts` line 1: `import { log } from "debug"` is wrong — `debug` default-exports a factory
+- Test coverage gaps: no dedicated tests for `SegmentResolver`, `SuggestionsProvider`, `DiagnosticsProvider`, `MatchEngine`, scoring functions
+- `parser.test.ts` (836 lines) should be split per concern: parsing, completions, suggestions, diagnostics, field types, validation
 
 ## Local development
 

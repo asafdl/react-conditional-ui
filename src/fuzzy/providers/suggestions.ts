@@ -3,10 +3,10 @@ import { MatchEngine } from "../match-engine";
 import { SegmentResolver } from "../segments";
 
 export class SuggestionsProvider {
-    private readonly segmentResolver: SegmentResolver;
-    public constructor(private readonly matcher: MatchEngine) {
-        this.segmentResolver = new SegmentResolver(this.matcher);
-    }
+    public constructor(
+        private readonly matcher: MatchEngine,
+        private readonly segmentResolver: SegmentResolver,
+    ) {}
 
     public getCompletions(text: string, limit = 6): { completion: string; display: string }[] {
         const { last, before } = this.splitForSuggestion(text);

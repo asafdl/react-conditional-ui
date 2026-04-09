@@ -11,9 +11,9 @@ export class ConditionParser {
 
     public constructor(fields: FieldOption[], operators: OperatorOption[]) {
         const matcher = new MatchEngine(fields, operators);
-        this.suggestions = new SuggestionsProvider(matcher);
-        this.diagnostics = new DiagnosticsProvider(matcher);
         this.segments = new SegmentResolver(matcher);
+        this.suggestions = new SuggestionsProvider(matcher, this.segments);
+        this.diagnostics = new DiagnosticsProvider(matcher, this.segments);
     }
 
     public parseCompound(text: string): ConditionGroup | null {

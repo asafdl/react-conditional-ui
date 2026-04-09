@@ -3,11 +3,10 @@ import { MatchEngine } from "../match-engine";
 import { SegmentResolver } from "../segments";
 
 export class DiagnosticsProvider {
-    private readonly segmentResolver: SegmentResolver;
-
-    public constructor(private readonly matcher: MatchEngine) {
-        this.segmentResolver = new SegmentResolver(this.matcher);
-    }
+    public constructor(
+        private readonly matcher: MatchEngine,
+        private readonly segmentResolver: SegmentResolver,
+    ) {}
 
     public diagnose(text: string): Diagnostic[] {
         const input = text.trim();
