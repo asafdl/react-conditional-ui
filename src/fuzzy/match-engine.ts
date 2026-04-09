@@ -1,50 +1,21 @@
 import Fuse from "fuse.js";
-import type { FieldOption, FieldType, OperatorOption } from "../types";
+import type { FieldOption, FieldType, OperatorOption, ParsedCondition } from "../types";
 import { createLogger } from "../logger";
+import { Operator, Value, Field } from "../condition-structure";
+import { matchFieldValue } from "./field-value-matcher";
+import { adjustOperatorScore } from "./score";
+import { stripLeadingNoise } from "./word-utils";
 
 const log = createLogger("match-engine");
 
-export type FlatAlias = { alias: string; operator: OperatorOption };
-export type FuseMatch<T> = { option: T; score: number };
-
-export const NOISE_WORDS = new Set([
-    "when",
-    "if",
-    "the",
-    "where",
-    "show",
-    "that",
-    "then",
-    "a",
-    "an",
-    "for",
-    "while",
-    "can",
-    "expect",
-    "check",
-    "verify",
-    "ensure",
-    "find",
-    "get",
-    "list",
-    "filter",
-    "only",
-    "all",
-    "with",
-    "having",
-    "whose",
-    "which",
-    "given",
-    "assuming",
-    "suppose",
-    "i",
-    "want",
-    "need",
-    "like",
-    "please",
-    "me",
-    "my",
-]);
+type FlatAlias = { alias: string; operator: OperatorOption };
+type FuseMatch<T> = { option: T; score: number };
+type OpCandidate = {
+    match: FuseMatch<OperatorOption>;
+    raw: string;
+    endIdx: number;
+    adjustedScore: number;
+};
 
 const TYPE_ALLOWED_OPS: Record<FieldType, Set<string>> = {
     number: new Set(["eq", "ne", "gt", "lt", "gte", "lte"]),
@@ -52,19 +23,9 @@ const TYPE_ALLOWED_OPS: Record<FieldType, Set<string>> = {
     text: new Set(["eq", "ne", "contains", "starts_with"]),
 };
 
-export function stripLeadingNoise(words: string[]): string[] {
-    let i = 0;
-    while (i < words.length && NOISE_WORDS.has(words[i])) i++;
-    const result = words.slice(i);
-    if (result.length !== words.length) {
-        log("noise stripped: %o -> %o", words, result);
-    }
-    return result;
-}
-
 export class MatchEngine {
-    protected readonly fields: FieldOption[];
-    protected readonly operators: OperatorOption[];
+    readonly fields: FieldOption[];
+    readonly operators: OperatorOption[];
 
     private readonly fieldFuse: Fuse<FieldOption>;
     private readonly opFuse: Fuse<FlatAlias>;
@@ -102,6 +63,161 @@ export class MatchEngine {
                 );
             }
         }
+    }
+
+    public parse(text: string): ParsedCondition | null {
+        const input = text.trim().toLowerCase();
+        if (!input) return null;
+
+        const allWords = input.split(/\s+/);
+        const words = stripLeadingNoise(allWords);
+        if (words.length === 0) return null;
+
+        const fieldResult = this.identifyField(words);
+        if (!fieldResult) return null;
+
+        if (fieldResult.remaining.length === 0) {
+            return {
+                field: fieldResult.field,
+                operator: Operator.invalid(""),
+                value: Value.empty(),
+                score: fieldResult.fieldScore,
+            };
+        }
+
+        const { operator, value, operatorScore } = this.resolveOperator(
+            fieldResult.remaining,
+            fieldResult.fieldOption,
+        );
+
+        const result: ParsedCondition = {
+            field: fieldResult.field,
+            operator,
+            value,
+            score: fieldResult.fieldScore + operatorScore,
+        };
+
+        log(
+            "result: field=%s(%s) op=%s(%s) value=%s (valid: %o)",
+            result.field.value,
+            result.field.label,
+            result.operator.value,
+            result.operator.label,
+            result.value.value,
+            {
+                field: result.field.isValid,
+                op: result.operator.isValid,
+                value: result.value.isValid,
+            },
+        );
+
+        return result;
+    }
+
+    public identifyField(words: string[]): {
+        field: Field;
+        fieldOption: FieldOption;
+        fieldScore: number;
+        remaining: string[];
+    } | null {
+        let best: { candidate: string; match: FuseMatch<FieldOption>; wordCount: number } | null =
+            null;
+
+        for (let i = words.length; i >= 1; i--) {
+            const candidate = words.slice(0, i).join(" ");
+            const match = this.matchField(candidate);
+            if (match && (!best || match.score < best.match.score)) {
+                best = { candidate, match, wordCount: i };
+            }
+        }
+
+        if (!best) return null;
+
+        return {
+            field: new Field(best.candidate, best.match.option.value, best.match.option.label),
+            fieldOption: best.match.option,
+            fieldScore: best.match.score,
+            remaining: words.slice(best.wordCount),
+        };
+    }
+
+    private resolveOperator(
+        words: string[],
+        fieldOption: FieldOption,
+    ): { operator: Operator; value: Value; operatorScore: number } {
+        const candidates = this.getOperatorCandidates(words, fieldOption);
+
+        if (candidates.length === 0) {
+            return {
+                operator: Operator.invalid(words.join(" ")),
+                value: Value.empty(),
+                operatorScore: 1,
+            };
+        }
+
+        for (const candidate of candidates) {
+            const valueRaw = words.slice(candidate.endIdx).join(" ");
+            const value = matchFieldValue(valueRaw, fieldOption);
+
+            if (value.isValid) {
+                const op = candidate.match.option;
+                return {
+                    operator: new Operator(candidate.raw, op.value, op.label),
+                    value,
+                    operatorScore: candidate.adjustedScore,
+                };
+            }
+
+            log(
+                "operator '%s' (%s) rejected — value '%s' invalid, trying next",
+                candidate.raw,
+                candidate.match.option.value,
+                valueRaw,
+            );
+        }
+
+        const best = candidates[0];
+        const bestOp = best.match.option;
+        const valueRaw = words.slice(best.endIdx).join(" ");
+        return {
+            operator: new Operator(best.raw, bestOp.value, bestOp.label),
+            value: matchFieldValue(valueRaw, fieldOption),
+            operatorScore: best.adjustedScore,
+        };
+    }
+
+    public getOperatorCandidates(words: string[], fieldOption: FieldOption): OpCandidate[] {
+        const candidates: OpCandidate[] = [];
+
+        for (let start = 0; start < words.length; start++) {
+            for (let end = start + 1; end <= words.length; end++) {
+                const opRaw = words.slice(start, end).join(" ");
+                const opMatch = this.matchOperator(opRaw, fieldOption);
+                if (!opMatch) continue;
+
+                const adjustedScore = adjustOperatorScore(opMatch.score, words, start, end);
+
+                candidates.push({
+                    match: opMatch,
+                    raw: opRaw,
+                    endIdx: end,
+                    adjustedScore,
+                });
+            }
+        }
+
+        candidates.sort((a, b) => a.adjustedScore - b.adjustedScore);
+
+        if (candidates.length > 0) {
+            log(
+                "operator candidates: %o",
+                candidates.map(
+                    (c) => `${c.raw} -> ${c.match.option.value} (${c.adjustedScore.toFixed(3)})`,
+                ),
+            );
+        }
+
+        return candidates;
     }
 
     private resolveOpsForField(field: FieldOption, allOps: OperatorOption[]): OperatorOption[] {

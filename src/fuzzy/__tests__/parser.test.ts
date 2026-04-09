@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ConditionParser } from "../parser";
+import { ConditionParser } from "../../condition-parser";
 import type { FieldOption } from "../../types";
 import { DEFAULT_OPERATORS } from "../../condition-structure";
 

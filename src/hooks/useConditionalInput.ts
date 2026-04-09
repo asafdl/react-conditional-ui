@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { ConditionParser } from "../fuzzy/parser";
+import { ConditionParser } from "../condition-parser";
 import { DEFAULT_OPERATORS } from "../condition-structure";
 import type { FieldOption, OperatorOption, ConditionGroup, Diagnostic } from "../types";
 
