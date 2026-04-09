@@ -6,7 +6,6 @@ import type { FieldOption, OperatorOption, ConditionGroup, Diagnostic } from "..
 export type UseConditionalInputOptions = {
     fields: FieldOption[];
     operators?: OperatorOption[];
-    values?: Record<string, FieldOption[]>;
     value?: string;
     onChange?: (raw: string) => void;
     onSubmit?: (group: ConditionGroup) => void;
@@ -15,7 +14,6 @@ export type UseConditionalInputOptions = {
 export function useConditionalInput({
     fields,
     operators = DEFAULT_OPERATORS,
-    values,
     value,
     onChange,
     onSubmit,
@@ -24,10 +22,7 @@ export function useConditionalInput({
     const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
     const text = value ?? internal;
 
-    const parser = useMemo(
-        () => new ConditionParser(fields, operators, values),
-        [fields, operators, values],
-    );
+    const parser = useMemo(() => new ConditionParser(fields, operators), [fields, operators]);
 
     const handleChange = useCallback(
         (next: string) => {

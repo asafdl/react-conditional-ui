@@ -17,7 +17,6 @@ type BaseProps = {
 type StandaloneProps = BaseProps & {
     fields: FieldOption[];
     operators?: OperatorOption[];
-    values?: Record<string, FieldOption[]>;
     value?: string;
     onChange?: (value: string) => void;
     onSubmit?: (group: ConditionGroup) => void;
@@ -159,7 +158,6 @@ const GhostInput = forwardRef<HTMLInputElement, GhostInputProps>(function GhostI
 function StandaloneInput({
     fields,
     operators,
-    values,
     value: controlledValue,
     onChange: controlledOnChange,
     onSubmit: onGroupParsed,
@@ -171,7 +169,6 @@ function StandaloneInput({
         useConditionalInput({
             fields,
             operators,
-            values,
             value: controlledValue,
             onChange: controlledOnChange,
             onSubmit: onGroupParsed,

@@ -23,6 +23,7 @@ export type ParsedCondition = {
     field: Field;
     operator: Operator;
     value: Value;
+    score: number;
 };
 
 export type LogicalOperator = "and" | "or";
@@ -61,7 +62,6 @@ export type Diagnostic = {
 export type ConditionalUIProps = {
     fields: FieldOption[];
     operators?: OperatorOption[];
-    values?: Record<string, FieldOption[]>;
     value?: string;
     onChange?: (raw: string) => void;
     onConditionsChange?: (groups: ConditionGroup[]) => void;

@@ -19,7 +19,6 @@ import type { GroupMutations } from "../hooks/useConditionalOutput";
 export type OutputProps = {
     fields: FieldOption[];
     operators: OperatorOption[];
-    values?: Record<string, FieldOption[]>;
     /** Controlled groups. Omit for uncontrolled (internal state). */
     groups?: ConditionGroup[];
     /** Fires whenever groups change (works in both controlled and uncontrolled mode). */
@@ -44,7 +43,6 @@ const DEFAULT_GROUP_CONFIG: Required<Omit<GroupConfig, "label" | "connector">> =
 export function Output({
     fields,
     operators,
-    values,
     groups: controlledGroups,
     onGroupsChange,
     defaultGroupConfig,
@@ -93,7 +91,6 @@ export function Output({
                             group={group}
                             fields={fields}
                             operators={operators}
-                            values={values}
                             config={resolveConfig(group.config, effectiveDefault)}
                             mutations={mutations}
                         />
@@ -112,14 +109,12 @@ function GroupCard({
     group,
     fields,
     operators,
-    values,
     config,
     mutations,
 }: {
     group: ConditionGroup;
     fields: FieldOption[];
     operators: OperatorOption[];
-    values?: Record<string, FieldOption[]>;
     config: ResolvedConfig;
     mutations: GroupMutations;
 }) {
@@ -152,7 +147,6 @@ function GroupCard({
                             condition={entry.condition}
                             fields={fields}
                             operators={operators}
-                            values={values}
                             onUpdate={
                                 config.editable
                                     ? (c) => mutations.updateCondition(group.id, entry.id, c)

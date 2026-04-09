@@ -7,7 +7,6 @@ import type { ConditionalUIProps } from "../types";
 export function ConditionalUI({
     fields,
     operators = DEFAULT_OPERATORS,
-    values,
     value,
     onChange,
     onConditionsChange,
@@ -25,7 +24,6 @@ export function ConditionalUI({
             <Input
                 fields={fields}
                 operators={operators}
-                values={values}
                 value={value}
                 onChange={onChange}
                 onSubmit={mutations.addGroup}
@@ -34,7 +32,6 @@ export function ConditionalUI({
                 groups={groups}
                 fields={fields}
                 operators={operators}
-                values={values}
                 onGroupsChange={mutations.setGroups}
             />
         </div>

@@ -10,15 +10,15 @@ import type { ParsedCondition, ConditionGroup, ConditionEntry } from "../../type
 
 const fields = [
     { label: "Age", value: "age" },
-    { label: "Status", value: "status" },
+    {
+        label: "Status",
+        value: "status",
+        fieldValues: [
+            { label: "active", value: "active" },
+            { label: "inactive", value: "inactive" },
+        ],
+    },
 ];
-
-const values = {
-    status: [
-        { label: "active", value: "active" },
-        { label: "inactive", value: "inactive" },
-    ],
-};
 
 afterEach(cleanup);
 
@@ -41,9 +41,10 @@ function makeCondition(
     const fieldOption = fields.find((f) => f.value === field)!;
     const opOption = DEFAULT_OPERATORS.find((o) => o.value === op)!;
     return {
-        field: new Field(fieldLabel, fieldOption, 0),
-        operator: new Operator(opLabel, opOption, 0),
+        field: new Field(fieldLabel, fieldOption.value, fieldOption.label),
+        operator: new Operator(opLabel, opOption.value, opOption.label),
         value: new Value(val),
+        score: 0,
     };
 }
 
@@ -63,7 +64,7 @@ describe("ConditionalUI", () => {
     });
 
     it("parses condition on Enter and shows chips", () => {
-        render(<ConditionalUI fields={fields} values={values} />);
+        render(<ConditionalUI fields={fields} />);
         submitCondition("age greater than 18");
 
         expect(screen.getByText("Age")).toBeInTheDocument();
@@ -133,7 +134,7 @@ describe("ConditionalUI", () => {
     describe("compound conditions", () => {
         it("parses OR compound and shows connector chip", () => {
             render(<ConditionalUI fields={fields} />);
-            submitCondition("status is green or blue");
+            submitCondition("status is active or inactive");
 
             const chips = screen.getAllByText("Status");
             expect(chips).toHaveLength(2);

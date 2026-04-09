@@ -123,6 +123,29 @@ mutations.addGroup(parsedGroup);
 
 All components accept `className` and `style` props. Internal elements use `rcui-*` CSS classes that can be overridden.
 
+## Debug logging
+
+The library uses the [`debug`](https://www.npmjs.com/package/debug) package. Logs are silent by default. Enable them to see how the fuzzy parser resolves fields, operators, and values:
+
+```js
+// Browser — enable all library logs
+localStorage.debug = "react-conditional-ui:*";
+
+// Browser — specific namespace only
+localStorage.debug = "react-conditional-ui:parser";
+```
+
+```bash
+# Node / SSR
+DEBUG=react-conditional-ui:* node app.js
+```
+
+Available namespaces: `parser`, `match-engine`.
+
+## Tech debt
+
+- `matchOperator` in `MatchEngine` uses a hard word-count gate (candidate and alias must have the same number of words) to prevent partial matches like `"greater"` → `"greater than"`. This should be replaced with a scoring penalty so the candidate still enters the ranking but loses to longer, better matches naturally.
+
 ## Local development
 
 ```bash

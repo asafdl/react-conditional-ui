@@ -11,7 +11,8 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import type { FieldOption, OperatorOption, ParsedCondition as Condition } from "../types";
-import { Field, Operator, Value } from "../condition-structure";
+import { Field, Operator } from "../condition-structure";
+import { matchFieldValue } from "../fuzzy/field-value-matcher";
 
 type ChipTarget = "field" | "operator" | "value";
 
@@ -20,7 +21,6 @@ export type OutputRowProps = {
     condition: Condition;
     fields: FieldOption[];
     operators: OperatorOption[];
-    values?: Record<string, FieldOption[]>;
     onUpdate?: (condition: Condition) => void;
     onRemove?: () => void;
 };
@@ -30,7 +30,6 @@ export function OutputRow({
     condition,
     fields,
     operators,
-    values,
     onUpdate,
     onRemove,
 }: OutputRowProps) {
@@ -58,19 +57,15 @@ export function OutputRow({
 
     const editable = !!onUpdate;
 
-    const resolveFieldValues = (f: FieldOption) => f.fieldValues ?? values?.[f.value];
+    const resolveFieldValues = (f: FieldOption) => f.fieldValues;
 
     const resolveOperators = (f: FieldOption) => f.operators ?? operators;
 
     const selectField = (f: FieldOption) => {
         onUpdate?.({
             ...condition,
-            field: new Field(f.label, f, 0),
-            value: new Value(condition.value.raw, {
-                knownValues: resolveFieldValues(f),
-                fieldType: f.type,
-                validateValue: f.validateValue,
-            }),
+            field: new Field(f.label, f.value, f.label),
+            value: matchFieldValue(condition.value.raw, f),
         });
         closePopover();
     };
@@ -78,27 +73,22 @@ export function OutputRow({
     const selectOperator = (op: OperatorOption) => {
         onUpdate?.({
             ...condition,
-            operator: new Operator(op.label, op, 0),
+            operator: new Operator(op.label, op.value, op.label),
         });
         closePopover();
     };
 
     const submitValue = (raw: string) => {
+        const fieldConfig = fields.find((f) => f.value === condition.field.value);
         onUpdate?.({
             ...condition,
-            value: new Value(raw, {
-                knownValues: resolveFieldValues(condition.field.option!),
-                fieldType: condition.field.option!.type,
-                validateValue: condition.field.option!.validateValue,
-            }),
+            value: matchFieldValue(raw, fieldConfig),
         });
         closePopover();
     };
 
     const currentField = fields.find((f) => f.value === condition.field.value);
-    const fieldValues = currentField
-        ? resolveFieldValues(currentField)
-        : values?.[condition.field.value];
+    const fieldValues = currentField ? resolveFieldValues(currentField) : undefined;
     const activeOperators = currentField ? resolveOperators(currentField) : operators;
 
     const rowClass = ["rcui-row", isOver && !isDragging ? "rcui-row--over" : ""]
