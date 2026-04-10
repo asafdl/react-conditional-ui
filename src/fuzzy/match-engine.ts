@@ -1,21 +1,13 @@
 import Fuse from "fuse.js";
-import type { FieldOption, FieldType, OperatorOption, ParsedCondition } from "../types";
+import type { FieldOption, FieldType, OperatorOption } from "../types";
+import { Value } from "../condition-structure/Value";
 import { createLogger } from "../logger";
-import { Operator, Value, Field } from "../condition-structure";
-import { matchFieldValue } from "./field-value-matcher";
-import { adjustOperatorScore } from "./score";
-import { stripLeadingNoise } from "./word-utils";
 
 const log = createLogger("match-engine");
+const valueLog = createLogger("value");
 
 type FlatAlias = { alias: string; operator: OperatorOption };
-type FuseMatch<T> = { option: T; score: number };
-type OpCandidate = {
-    match: FuseMatch<OperatorOption>;
-    raw: string;
-    endIdx: number;
-    adjustedScore: number;
-};
+export type FuseMatch<T> = { option: T; score: number };
 
 const TYPE_ALLOWED_OPS: Record<FieldType, Set<string>> = {
     number: new Set(["eq", "ne", "gt", "lt", "gte", "lte"]),
@@ -65,174 +57,6 @@ export class MatchEngine {
         }
     }
 
-    public parse(text: string): ParsedCondition | null {
-        const input = text.trim().toLowerCase();
-        if (!input) return null;
-
-        const allWords = input.split(/\s+/);
-        const words = stripLeadingNoise(allWords);
-        if (words.length === 0) return null;
-
-        const fieldResult = this.identifyField(words);
-        if (!fieldResult) return null;
-
-        if (fieldResult.remaining.length === 0) {
-            return {
-                field: fieldResult.field,
-                operator: Operator.invalid(""),
-                value: Value.empty(),
-                score: fieldResult.fieldScore,
-            };
-        }
-
-        const { operator, value, operatorScore } = this.resolveOperator(
-            fieldResult.remaining,
-            fieldResult.fieldOption,
-        );
-
-        const result: ParsedCondition = {
-            field: fieldResult.field,
-            operator,
-            value,
-            score: fieldResult.fieldScore + operatorScore,
-        };
-
-        log(
-            "result: field=%s(%s) op=%s(%s) value=%s (valid: %o)",
-            result.field.value,
-            result.field.label,
-            result.operator.value,
-            result.operator.label,
-            result.value.value,
-            {
-                field: result.field.isValid,
-                op: result.operator.isValid,
-                value: result.value.isValid,
-            },
-        );
-
-        return result;
-    }
-
-    public identifyField(words: string[]): {
-        field: Field;
-        fieldOption: FieldOption;
-        fieldScore: number;
-        remaining: string[];
-    } | null {
-        let best: { candidate: string; match: FuseMatch<FieldOption>; wordCount: number } | null =
-            null;
-
-        for (let i = words.length; i >= 1; i--) {
-            const candidate = words.slice(0, i).join(" ");
-            const match = this.matchField(candidate);
-            if (match && (!best || match.score < best.match.score)) {
-                best = { candidate, match, wordCount: i };
-            }
-        }
-
-        if (!best) return null;
-
-        return {
-            field: new Field(best.candidate, best.match.option.value, best.match.option.label),
-            fieldOption: best.match.option,
-            fieldScore: best.match.score,
-            remaining: words.slice(best.wordCount),
-        };
-    }
-
-    private resolveOperator(
-        words: string[],
-        fieldOption: FieldOption,
-    ): { operator: Operator; value: Value; operatorScore: number } {
-        const candidates = this.getOperatorCandidates(words, fieldOption);
-
-        if (candidates.length === 0) {
-            return {
-                operator: Operator.invalid(words.join(" ")),
-                value: Value.empty(),
-                operatorScore: 1,
-            };
-        }
-
-        for (const candidate of candidates) {
-            const valueRaw = words.slice(candidate.endIdx).join(" ");
-            const value = matchFieldValue(valueRaw, fieldOption);
-
-            if (value.isValid) {
-                const op = candidate.match.option;
-                return {
-                    operator: new Operator(candidate.raw, op.value, op.label),
-                    value,
-                    operatorScore: candidate.adjustedScore,
-                };
-            }
-
-            log(
-                "operator '%s' (%s) rejected — value '%s' invalid, trying next",
-                candidate.raw,
-                candidate.match.option.value,
-                valueRaw,
-            );
-        }
-
-        const best = candidates[0];
-        const bestOp = best.match.option;
-        const valueRaw = words.slice(best.endIdx).join(" ");
-        return {
-            operator: new Operator(best.raw, bestOp.value, bestOp.label),
-            value: matchFieldValue(valueRaw, fieldOption),
-            operatorScore: best.adjustedScore,
-        };
-    }
-
-    public getOperatorCandidates(words: string[], fieldOption: FieldOption): OpCandidate[] {
-        const candidates: OpCandidate[] = [];
-
-        for (let start = 0; start < words.length; start++) {
-            for (let end = start + 1; end <= words.length; end++) {
-                const opRaw = words.slice(start, end).join(" ");
-                const opMatch = this.matchOperator(opRaw, fieldOption);
-                if (!opMatch) continue;
-
-                const adjustedScore = adjustOperatorScore(opMatch.score, words, start, end);
-
-                candidates.push({
-                    match: opMatch,
-                    raw: opRaw,
-                    endIdx: end,
-                    adjustedScore,
-                });
-            }
-        }
-
-        candidates.sort((a, b) => a.adjustedScore - b.adjustedScore);
-
-        if (candidates.length > 0) {
-            log(
-                "operator candidates: %o",
-                candidates.map(
-                    (c) => `${c.raw} -> ${c.match.option.value} (${c.adjustedScore.toFixed(3)})`,
-                ),
-            );
-        }
-
-        return candidates;
-    }
-
-    private resolveOpsForField(field: FieldOption, allOps: OperatorOption[]): OperatorOption[] {
-        if (field.operators) return field.operators;
-        if (field.type) {
-            const allowed = TYPE_ALLOWED_OPS[field.type];
-            return allOps.filter((op) => allowed.has(op.value));
-        }
-        return allOps;
-    }
-
-    allowedOpsForField(field: FieldOption): OperatorOption[] {
-        return this.resolveOpsForField(field, this.operators);
-    }
-
     matchField(candidate: string): FuseMatch<FieldOption> | null {
         const results = this.fieldFuse.search(candidate);
         if (results.length > 0 && (results[0].score ?? 1) <= 0.4) {
@@ -268,28 +92,87 @@ export class MatchEngine {
         return null;
     }
 
-    prefixMatch(
-        partial: string,
-        candidates: string[],
-    ): { completion: string; display: string } | null {
-        const matches = this.prefixMatches(partial, candidates);
-        return matches.length > 0 ? matches[0] : null;
+    static matchValue(raw: string, fieldConfig?: FieldOption): Value {
+        const knownValues = fieldConfig?.fieldValues;
+        const validateValue = fieldConfig?.validateValue;
+        const fieldType = fieldConfig?.type;
+
+        if (knownValues && knownValues.length > 0) {
+            return MatchEngine.matchKnownValue(raw, knownValues, validateValue);
+        }
+
+        if (raw.length === 0) return Value.empty();
+
+        if (validateValue) {
+            const result = validateValue(raw);
+            if (result !== true) return Value.invalid(raw, result);
+            return Value.valid(raw);
+        }
+
+        if (fieldType === "number" && !isFinite(Number(raw))) {
+            valueLog("numeric validation failed: raw=%s", raw);
+            return Value.invalid(raw, "Expected a number");
+        }
+
+        return Value.valid(raw);
     }
 
-    prefixMatches(
-        partial: string,
-        candidates: string[],
-        limit = 6,
-    ): { completion: string; display: string }[] {
-        const lower = partial.toLowerCase();
-        const results: { completion: string; display: string }[] = [];
-        for (const candidate of candidates) {
-            const cl = candidate.toLowerCase();
-            if (cl.startsWith(lower) && cl !== lower) {
-                results.push({ completion: cl.slice(lower.length), display: candidate });
-                if (results.length >= limit) break;
-            }
+    private static matchKnownValue(
+        raw: string,
+        knownValues: FieldOption[],
+        validateValue?: (raw: string) => true | string,
+    ): Value {
+        const lower = raw.toLowerCase();
+        const exact = knownValues.find(
+            (v) => v.value.toLowerCase() === lower || v.label.toLowerCase() === lower,
+        );
+
+        if (exact) {
+            valueLog("exact match: raw=%s -> %s", raw, exact.value);
+            return MatchEngine.applyValidator(raw, exact, validateValue);
         }
-        return results;
+
+        if (raw.length === 0) return Value.invalid(raw, "Value not recognized");
+
+        const fuse = new Fuse(knownValues, {
+            keys: ["label", "value"],
+            threshold: 0.4,
+            includeScore: true,
+        });
+
+        const results = fuse.search(raw);
+        if (results.length > 0 && (results[0].score ?? 1) <= 0.4) {
+            valueLog(
+                "fuzzy match: raw=%s -> %s (score: %f)",
+                raw,
+                results[0].item.value,
+                results[0].score,
+            );
+            return MatchEngine.applyValidator(raw, results[0].item, validateValue);
+        }
+
+        valueLog("no match: raw=%s", raw);
+        return Value.invalid(raw, "Value not recognized");
+    }
+
+    private static applyValidator(
+        raw: string,
+        matched: FieldOption,
+        validateValue?: (raw: string) => true | string,
+    ): Value {
+        if (validateValue) {
+            const result = validateValue(raw);
+            if (result !== true) return Value.invalid(raw, result);
+        }
+        return Value.valid(raw, matched);
+    }
+
+    private resolveOpsForField(field: FieldOption, allOps: OperatorOption[]): OperatorOption[] {
+        if (field.operators) return field.operators;
+        if (field.type) {
+            const allowed = TYPE_ALLOWED_OPS[field.type];
+            return allOps.filter((op) => allowed.has(op.value));
+        }
+        return allOps;
     }
 }

@@ -1,19 +1,21 @@
 import { MatchEngine } from "./fuzzy/match-engine";
+import { ConditionParser } from "./conditions/parser";
 import { SuggestionsProvider } from "./fuzzy/providers/suggestions";
 import { DiagnosticsProvider } from "./fuzzy/providers/diagnostics";
 import type { FieldOption, OperatorOption, ConditionGroup, Diagnostic } from "./types";
 import { SegmentResolver } from "./fuzzy/segments";
 
-export class ConditionParser {
+export class ConditionDataProvider {
     private readonly suggestions: SuggestionsProvider;
     private readonly diagnostics: DiagnosticsProvider;
     private readonly segments: SegmentResolver;
 
     public constructor(fields: FieldOption[], operators: OperatorOption[]) {
-        const matcher = new MatchEngine(fields, operators);
-        this.segments = new SegmentResolver(matcher);
-        this.suggestions = new SuggestionsProvider(matcher, this.segments);
-        this.diagnostics = new DiagnosticsProvider(matcher, this.segments);
+        const engine = new MatchEngine(fields, operators);
+        const parser = new ConditionParser(engine);
+        this.segments = new SegmentResolver(parser);
+        this.suggestions = new SuggestionsProvider(parser, this.segments);
+        this.diagnostics = new DiagnosticsProvider(parser, this.segments);
     }
 
     public parseCompound(text: string): ConditionGroup | null {

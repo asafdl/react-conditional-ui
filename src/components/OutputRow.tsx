@@ -12,7 +12,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import type { FieldOption, OperatorOption, ParsedCondition as Condition } from "../types";
 import { Field, Operator } from "../condition-structure";
-import { matchFieldValue } from "../fuzzy/field-value-matcher";
+import { MatchEngine } from "../fuzzy/match-engine";
 
 type ChipTarget = "field" | "operator" | "value";
 
@@ -65,7 +65,7 @@ export function OutputRow({
         onUpdate?.({
             ...condition,
             field: new Field(f.label, f.value, f.label),
-            value: matchFieldValue(condition.value.raw, f),
+            value: MatchEngine.matchValue(condition.value.raw, f),
         });
         closePopover();
     };
@@ -82,7 +82,7 @@ export function OutputRow({
         const fieldConfig = fields.find((f) => f.value === condition.field.value);
         onUpdate?.({
             ...condition,
-            value: matchFieldValue(raw, fieldConfig),
+            value: MatchEngine.matchValue(raw, fieldConfig),
         });
         closePopover();
     };

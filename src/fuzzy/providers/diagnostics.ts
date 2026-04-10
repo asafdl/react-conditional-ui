@@ -1,10 +1,10 @@
 import { Diagnostic } from "../../types";
-import { MatchEngine } from "../match-engine";
+import { ConditionParser } from "../../conditions/parser";
 import { SegmentResolver } from "../segments";
 
 export class DiagnosticsProvider {
     public constructor(
-        private readonly matcher: MatchEngine,
+        private readonly parser: ConditionParser,
         private readonly segmentResolver: SegmentResolver,
     ) {}
 
@@ -37,7 +37,7 @@ export class DiagnosticsProvider {
 
             if (!condition.operator.isValid) {
                 const fieldEnd = offset + condition.field.raw.length;
-                const fieldConfig = this.matcher.fields.find(
+                const fieldConfig = this.parser.fields.find(
                     (f) => f.value === condition.field.value,
                 );
                 const hasRestriction = fieldConfig?.operators || fieldConfig?.type;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ConditionParser } from "../../condition-parser";
+import { ConditionDataProvider } from "../../condition-data-provider";
 import type { FieldOption } from "../../types";
 import { DEFAULT_OPERATORS } from "../../condition-structure";
 
@@ -36,7 +36,7 @@ const fieldsWithConfig: FieldOption[] = [
     },
 ];
 
-const parser = new ConditionParser(fields, DEFAULT_OPERATORS);
+const parser = new ConditionDataProvider(fields, DEFAULT_OPERATORS);
 
 function expectCondition(text: string, field: string, operator: string, value: string) {
     const group = parser.parseCompound(text);
@@ -202,7 +202,7 @@ describe("ConditionParser", () => {
                     fieldValues: [{ label: "Active", value: "active" }],
                 },
             ];
-            const p = new ConditionParser(fieldsWithValues, DEFAULT_OPERATORS);
+            const p = new ConditionDataProvider(fieldsWithValues, DEFAULT_OPERATORS);
             const c = p.parseCompound("status is active")!.entries[0].condition;
             expect(c.value.isValid).toBe(true);
             expect(c.value.label).toBe("Active");
@@ -216,7 +216,7 @@ describe("ConditionParser", () => {
                     fieldValues: [{ label: "Active", value: "active" }],
                 },
             ];
-            const p = new ConditionParser(fieldsWithValues, DEFAULT_OPERATORS);
+            const p = new ConditionDataProvider(fieldsWithValues, DEFAULT_OPERATORS);
             const c = p.parseCompound("status is bogus")!.entries[0].condition;
             expect(c.value.isValid).toBe(false);
         });
@@ -228,7 +228,7 @@ describe("ConditionParser", () => {
                 { label: "First Name", value: "first_name" },
                 { label: "Age", value: "age" },
             ];
-            const p = new ConditionParser(multiFields, DEFAULT_OPERATORS);
+            const p = new ConditionDataProvider(multiFields, DEFAULT_OPERATORS);
             const c = p.parseCompound("first name contains john")!.entries[0].condition;
             expect(c.field.value).toBe("first_name");
             expect(c.operator.value).toBe("contains");
@@ -236,7 +236,7 @@ describe("ConditionParser", () => {
         });
         it("parses three-word field", () => {
             const multiFields: FieldOption[] = [{ label: "Date Of Birth", value: "dob" }];
-            const p = new ConditionParser(multiFields, DEFAULT_OPERATORS);
+            const p = new ConditionDataProvider(multiFields, DEFAULT_OPERATORS);
             const c = p.parseCompound("date of birth is 1990")!.entries[0].condition;
             expect(c.field.value).toBe("dob");
             expect(c.value.value).toBe("1990");
@@ -252,7 +252,7 @@ describe("ConditionParser", () => {
                     aliases: ["matches regex", "regex", "~"],
                 },
             ];
-            const p = new ConditionParser(fields, customOps);
+            const p = new ConditionDataProvider(fields, customOps);
             const c = p.parseCompound("name matches regex ^foo")!.entries[0].condition;
             expect(c.operator.value).toBe("regex");
             expect(c.value.value).toBe("^foo");
@@ -261,7 +261,7 @@ describe("ConditionParser", () => {
             const customOps = [
                 { label: "starts with", value: "startsWith", aliases: ["starts with"] },
             ];
-            const p = new ConditionParser(fields, customOps);
+            const p = new ConditionDataProvider(fields, customOps);
             const c = p.parseCompound("name starts with J")!.entries[0].condition;
             expect(c.operator.value).toBe("startsWith");
             expect(c.value.value).toBe("j");
@@ -449,7 +449,7 @@ describe("ConditionParser", () => {
 });
 
 describe("ConditionParser with fieldValues", () => {
-    const p = new ConditionParser(fieldsWithConfig, DEFAULT_OPERATORS);
+    const p = new ConditionDataProvider(fieldsWithConfig, DEFAULT_OPERATORS);
 
     it("fuzzy matches a value from field.fieldValues", () => {
         const c = p.parseCompound("status is read")!.entries[0].condition;
@@ -508,7 +508,7 @@ describe("ConditionParser with fieldValues", () => {
 });
 
 describe("ConditionParser with per-field operators", () => {
-    const p = new ConditionParser(fieldsWithConfig, DEFAULT_OPERATORS);
+    const p = new ConditionDataProvider(fieldsWithConfig, DEFAULT_OPERATORS);
 
     it("matches restricted operator for field with custom operators", () => {
         const c = p.parseCompound("priority is high")!.entries[0].condition;
@@ -535,7 +535,7 @@ describe("ConditionParser with per-field operators", () => {
 });
 
 describe("ConditionParser.getSuggestion", () => {
-    const p = new ConditionParser(fieldsWithConfig, DEFAULT_OPERATORS);
+    const p = new ConditionDataProvider(fieldsWithConfig, DEFAULT_OPERATORS);
 
     describe("field suggestions", () => {
         it("suggests field from prefix", () => {
@@ -653,7 +653,7 @@ describe("ConditionParser.getSuggestion", () => {
 });
 
 describe("ConditionParser.getCompletions", () => {
-    const p = new ConditionParser(fieldsWithConfig, DEFAULT_OPERATORS);
+    const p = new ConditionDataProvider(fieldsWithConfig, DEFAULT_OPERATORS);
 
     it("returns field labels on empty input", () => {
         const items = p.getCompletions("");
@@ -670,7 +670,7 @@ describe("ConditionParser.getCompletions", () => {
         const typedFields: FieldOption[] = [
             { label: "Status", value: "status", type: "enum" as const },
         ];
-        const tp = new ConditionParser(typedFields, DEFAULT_OPERATORS);
+        const tp = new ConditionDataProvider(typedFields, DEFAULT_OPERATORS);
         const items = tp.getCompletions("status ");
         expect(items.length).toBeGreaterThan(0);
         expect(items.every((i) => !i.display.match(/greater|less/i))).toBe(true);
@@ -687,7 +687,7 @@ describe("ConditionParser.getCompletions", () => {
 });
 
 describe("ConditionParser.diagnose", () => {
-    const p = new ConditionParser(fieldsWithConfig, DEFAULT_OPERATORS);
+    const p = new ConditionDataProvider(fieldsWithConfig, DEFAULT_OPERATORS);
 
     it("returns empty array for a fully valid condition", () => {
         expect(p.diagnose("age gt 5")).toEqual([]);
@@ -738,7 +738,7 @@ describe("ConditionParser with field types", () => {
         { label: "Score", value: "score", type: "number" },
     ];
 
-    const tp = new ConditionParser(typedFields, DEFAULT_OPERATORS);
+    const tp = new ConditionDataProvider(typedFields, DEFAULT_OPERATORS);
 
     it("parses numeric field with valid number", () => {
         const c = tp.parseCompound("age gt 25")!.entries[0].condition;
@@ -808,7 +808,7 @@ describe("ConditionParser with validateValue callback", () => {
         },
     ];
 
-    const vp = new ConditionParser(validatedFields, DEFAULT_OPERATORS);
+    const vp = new ConditionDataProvider(validatedFields, DEFAULT_OPERATORS);
 
     it("accepts value passing custom validator", () => {
         const c = vp.parseCompound("age is 25")!.entries[0].condition;

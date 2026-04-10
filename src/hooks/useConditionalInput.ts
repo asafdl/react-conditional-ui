@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { ConditionParser } from "../condition-parser";
+import { ConditionDataProvider } from "../condition-data-provider";
 import { DEFAULT_OPERATORS } from "../condition-structure";
 import type { FieldOption, OperatorOption, ConditionGroup, Diagnostic } from "../types";
 
@@ -22,7 +22,7 @@ export function useConditionalInput({
     const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
     const text = value ?? internal;
 
-    const parser = useMemo(() => new ConditionParser(fields, operators), [fields, operators]);
+    const parser = useMemo(() => new ConditionDataProvider(fields, operators), [fields, operators]);
 
     const handleChange = useCallback(
         (next: string) => {
