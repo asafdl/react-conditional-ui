@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/asafdl/react-conditional-ui/compare/v1.2.0...v1.2.1) (2026-04-12)
+
+
+### Bug Fixes
+
+* ci issues related to npm release ([40c3ad9](https://github.com/asafdl/react-conditional-ui/commit/40c3ad9368a81c172cebb1a724fc473a9170b8e5))
+
 # [1.2.0](https://github.com/asafdl/react-conditional-ui/compare/v1.1.0...v1.2.0) (2026-04-12)
 
 
@@ -20,4 +27,3 @@
 * autocomplete fixes and matching ([f2cfca7](https://github.com/asafdl/react-conditional-ui/commit/f2cfca72900d220be841468f1e9f2b1ec7adcf0c))
 * lint errors for input ([e0db3e1](https://github.com/asafdl/react-conditional-ui/commit/e0db3e150d0e3edf429d848eb738e62441f2670e))
 * some react compiler issues ([41d9278](https://github.com/asafdl/react-conditional-ui/commit/41d92787e620909a4df11e0bbceb9bc2680392ad))
-
