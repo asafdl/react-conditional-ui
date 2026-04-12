@@ -13,6 +13,13 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { ConditionGroup, ConditionEntry } from "../types";
 import type { GroupMutations } from "../hooks/useConditionalOutput";
+import { applyOutputDragEnd } from "../dnd/output-drag-end";
+
+export {
+    UNGROUP_ZONE_ID,
+    GROUP_DROPPABLE_PREFIX,
+    applyOutputDragEnd,
+} from "../dnd/output-drag-end";
 
 type Props = {
     groups: ConditionGroup[];
@@ -20,9 +27,6 @@ type Props = {
     children: ReactNode;
     renderOverlay?: (entry: ConditionEntry) => ReactNode;
 };
-
-export const UNGROUP_ZONE_ID = "ungrouped-drop-zone";
-export const GROUP_DROPPABLE_PREFIX = "group:";
 
 export function OutputDndContext({ groups, mutations, children, renderOverlay }: Props) {
     const [activeEntry, setActiveEntry] = useState<ConditionEntry | null>(null);
@@ -49,38 +53,13 @@ export function OutputDndContext({ groups, mutations, children, renderOverlay }:
     const handleDragEnd = useCallback(
         (event: DragEndEvent) => {
             setActiveEntry(null);
-
-            const { active, over } = event;
-            if (!over || active.id === over.id) return;
-
-            const activeId = String(active.id);
-            const overId = String(over.id);
-
-            const sourceGroup = findGroupByEntryId(groups, activeId);
-            if (!sourceGroup) return;
-
-            if (overId === UNGROUP_ZONE_ID) {
-                mutations.ungroupEntry(sourceGroup.id, activeId);
-                return;
-            }
-
-            if (overId.startsWith(GROUP_DROPPABLE_PREFIX)) {
-                const targetGroupId = overId.slice(GROUP_DROPPABLE_PREFIX.length);
-                if (targetGroupId !== sourceGroup.id) {
-                    mutations.moveBetweenGroups(sourceGroup.id, targetGroupId, activeId, null);
-                }
-                return;
-            }
-
-            const targetGroup = findGroupByEntryId(groups, overId);
-
-            if (targetGroup && sourceGroup.id === targetGroup.id) {
-                mutations.reorderWithinGroup(sourceGroup.id, activeId, overId);
-            } else if (targetGroup) {
-                mutations.moveBetweenGroups(sourceGroup.id, targetGroup.id, activeId, overId);
-            } else {
-                mutations.ungroupEntry(sourceGroup.id, activeId);
-            }
+            const over = event.over;
+            applyOutputDragEnd(
+                groups,
+                String(event.active.id),
+                over ? String(over.id) : null,
+                mutations,
+            );
         },
         [groups, mutations],
     );
@@ -98,11 +77,4 @@ export function OutputDndContext({ groups, mutations, children, renderOverlay }:
             </DragOverlay>
         </DndContext>
     );
-}
-
-function findGroupByEntryId(groups: ConditionGroup[], entryId: string) {
-    for (const group of groups) {
-        if (group.entries.some((e) => e.id === entryId)) return group;
-    }
-    return null;
 }

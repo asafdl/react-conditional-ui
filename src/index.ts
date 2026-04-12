@@ -6,7 +6,10 @@ export { Output } from "./components/Output";
 export { useConditionalInput } from "./hooks/useConditionalInput";
 export { useConditionalOutput } from "./hooks/useConditionalOutput";
 export { useConditionDataProvider } from "./hooks/useConditionDataProvider";
-export { ConditionDataProvider, ConditionDataProvider as ConditionParser } from "./condition-data-provider";
+export {
+    ConditionDataProvider,
+    ConditionDataProvider as ConditionParser,
+} from "./condition-data-provider";
 export { DEFAULT_OPERATORS } from "./fuzzy/operators";
 export type {
     FieldOption,

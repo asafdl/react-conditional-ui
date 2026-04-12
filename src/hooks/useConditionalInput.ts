@@ -22,10 +22,11 @@ export function useConditionalInput({
     const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
     const text = value ?? internal;
 
-    const { parseComplexCondition, getSuggestion, getCompletions, diagnose } = useConditionDataProvider({
-        fields,
-        operators,
-    });
+    const { parseComplexCondition, getSuggestion, getCompletions, diagnose } =
+        useConditionDataProvider({
+            fields,
+            operators,
+        });
 
     const handleChange = useCallback(
         (next: string) => {

@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { useState } from "react";
+import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { ConditionalUI } from "../ConditionalUI";
 import { Output } from "../Output";
 import { OutputRow } from "../OutputRow";
@@ -230,6 +231,67 @@ describe("ConditionalUI", () => {
 
             expect(screen.getByLabelText("drag handle")).toBeInTheDocument();
         });
+    });
+
+    it("keeps text and shows diagnostics when parse fails on Enter", () => {
+        render(<ConditionalUI fields={fields} />);
+        const input = getInput();
+        fireEvent.change(input, { target: { value: "height greater than 180" } });
+        fireEvent.keyDown(input, { key: "Enter" });
+
+        expect(input).toHaveValue("height greater than 180");
+        expect(document.querySelector(".rcui-squiggly")).toBeTruthy();
+    });
+
+    it("toggles AND/OR connector chip in a compound group", () => {
+        render(<ConditionalUI fields={fields} />);
+        submitCondition("age gt 18 and status is active");
+
+        expect(screen.getByText("AND")).toBeInTheDocument();
+        fireEvent.click(screen.getByText("AND"));
+        expect(screen.getByText("OR")).toBeInTheDocument();
+    });
+});
+
+function ControlledOutputHarness({ initialGroups }: { initialGroups: ConditionGroup[] }) {
+    const [groups, setGroups] = useState(initialGroups);
+    return (
+        <Output
+            groups={groups}
+            fields={fields}
+            operators={DEFAULT_OPERATORS}
+            onGroupsChange={setGroups}
+        />
+    );
+}
+
+describe("Output (controlled)", () => {
+    it("removes a row when controlled state updates from remove", async () => {
+        const initial = [
+            makeGroup([makeEntry(makeCondition("age", "Age", "gt", "greater than", "18"))]),
+        ];
+        render(<ControlledOutputHarness initialGroups={initial} />);
+
+        expect(screen.getByText("18")).toBeInTheDocument();
+        fireEvent.click(screen.getByLabelText("remove condition"));
+
+        await waitFor(() => {
+            expect(screen.getByText("Parsed condition will appear here…")).toBeInTheDocument();
+        });
+    });
+
+    it("renders defaultGroupConfig label on groups", () => {
+        const groups = [makeGroup([makeEntry(makeCondition("age", "Age", "eq", "equals", "1"))])];
+        render(
+            <Output
+                groups={groups}
+                fields={fields}
+                operators={DEFAULT_OPERATORS}
+                defaultGroupConfig={{ label: "My filters" }}
+            />,
+        );
+
+        expect(screen.getByText("My filters")).toBeInTheDocument();
     });
 });
 
