@@ -1,3 +1,5 @@
+# Message-based test gating lives in commit-msg (Git does not provide the final
+# message to pre-commit before the editor runs).
 npm run format
 git add -u
-npm run lint && npm test
+npm run lint

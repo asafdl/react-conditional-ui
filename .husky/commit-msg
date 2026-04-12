@@ -1,1 +1,8 @@
 npx --no -- commitlint --edit "$1"
+
+# Full tests only for conventional types that usually touch runtime code.
+# (pre-commit cannot see the final message for `git commit` without -m.)
+first_line=$(head -1 "$1" | tr -d '\r')
+if printf '%s\n' "$first_line" | grep -qiE '^(feat|fix|test|refactor)(\([^)]*\))?(!)?:'; then
+    npm run test
+fi
