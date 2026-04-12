@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/asafdl/react-conditional-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/asafdl/react-conditional-ui/actions/workflows/ci.yml)
 [![Release](https://github.com/asafdl/react-conditional-ui/actions/workflows/release.yml/badge.svg)](https://github.com/asafdl/react-conditional-ui/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/react-conditional-ui)](https://www.npmjs.com/package/react-conditional-ui)
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/asafdl/878c647c0e4534366ac2787e3871ce81/raw/coverage.json)
 ![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)

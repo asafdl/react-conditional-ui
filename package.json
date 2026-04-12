@@ -74,6 +74,31 @@
         "typescript": "^5.6.3",
         "vitest": "^4.1.2"
     },
+    "keywords": [
+        "react",
+        "react-component",
+        "ui",
+        "component",
+        "control",
+        "condition",
+        "condition-builder",
+        "query-builder",
+        "natural-language",
+        "autocomplete",
+        "autosuggest",
+        "fuzzy-search",
+        "drag-drop",
+        "mui",
+        "material-ui"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/asafdl/react-conditional-ui.git"
+    },
+    "homepage": "https://asafdl.github.io/react-conditional-ui/",
+    "bugs": {
+        "url": "https://github.com/asafdl/react-conditional-ui/issues"
+    },
     "license": "MIT",
     "dependencies": {
         "debug": "^4.4.3",
