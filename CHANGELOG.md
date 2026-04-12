@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/asafdl/react-conditional-ui/compare/v1.1.0...v1.2.0) (2026-04-12)
+
+
+### Features
+
+* suggestion button and mac shortcut ([471101c](https://github.com/asafdl/react-conditional-ui/commit/471101cd00fa8ee40871e42b9ce0ce5b9261810f))
+
 # [1.1.0](https://github.com/asafdl/react-conditional-ui/compare/v1.0.0...v1.1.0) (2026-04-12)
 
 
