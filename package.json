@@ -15,7 +15,8 @@
         "./styles.css": "./dist/styles.css"
     },
     "files": [
-        "dist"
+        "dist",
+        "logo.png"
     ],
     "scripts": {
         "build": "tsup",

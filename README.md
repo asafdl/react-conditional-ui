@@ -1,4 +1,6 @@
-# react-conditional-ui
+<div align="left">
+  <img src="logo.png" alt="react-conditional-ui logo" width="380" />
+</div>
 
 [![CI](https://github.com/asafdl/react-conditional-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/asafdl/react-conditional-ui/actions/workflows/ci.yml)
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/asafdl/878c647c0e4534366ac2787e3871ce81/raw/coverage.json)
