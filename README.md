@@ -99,15 +99,33 @@ const group: ConditionGroup = {
 
 You can also set defaults for all groups via `defaultGroupConfig` on `<Output />`.
 
-## Hooks
+## Hooks Instead of Components
+
+The library’s behavior is split between **presentation** (`<Input />`, `<Output />`, `<ConditionalUI />`) and **data**: a memoized `ConditionDataProvider` facade (parse, suggest, complete, diagnose) plus optional React hooks for local state. You can use the hooks and export types only, and build your own inputs (native `<input>`, design-system fields, mobile, etc.) or your own condition display (lists, tables, read-only summaries).
+
+### `useConditionDataProvider`
+
+Lowest-level hook: creates a stable `ConditionDataProvider` for the given `fields` and optional `operators`, and returns `parseComplexCondition`, `getSuggestion`, `getCompletions`, `diagnose`, plus the raw `provider` instance. No text state, no submit handler—only the core API. Use this when you already manage `value` / `onChange` and want full control over when to parse or show diagnostics.
+
+```tsx
+import { useConditionDataProvider, DEFAULT_OPERATORS } from "react-conditional-ui";
+
+const { parseComplexCondition, getSuggestion, diagnose } = useConditionDataProvider({
+    fields,
+    operators: DEFAULT_OPERATORS,
+});
+
+const group = parseComplexCondition(raw);
+const issues = diagnose(raw);
+```
 
 ### `useConditionalInput`
 
-Manages input state, parsing, diagnostics, and suggestions. Use when composing `<Input />` with custom UI.
+Opinionated input helper: internal or controlled string state, clears diagnostics on change, validates on submit, and wires `parseCompound` / `diagnose` for you. Pair it with `<Input />` when you need controlled mode (see above), or with your own field by calling `handleChange`, `handleSubmit`, and passing through `getSuggestion` / `getCompletions` / `diagnostics`.
 
 ### `useConditionalOutput`
 
-Manages group state and mutations (add, remove, reorder, update, toggle connectors). Supports controlled/uncontrolled patterns.
+Group list and mutations without rendering `<Output />`. Same `groups` / `onGroupsChange` controlled or uncontrolled patterns as the component; use `mutations` (`addGroup`, `removeEntry`, `toggleConnector`, `updateCondition`, reorder helpers, etc.) from your own UI.
 
 ```tsx
 import { useConditionalOutput } from "react-conditional-ui";
@@ -151,7 +169,6 @@ Available namespaces: `parser`, `match-engine`.
 - `stripLeadingNoise` + `NOISE_WORDS` in `word-utils.ts` is domain-specific, not a word utility
 - `segments.ts` line 1: `import { log } from "debug"` is wrong — `debug` default-exports a factory
 - Test coverage gaps: no dedicated tests for `SegmentResolver`, `SuggestionsProvider`, `DiagnosticsProvider`, `MatchEngine`, scoring functions
-- `parser.test.ts` (836 lines) should be split per concern: parsing, completions, suggestions, diagnostics, field types, validation
 
 ## Local development
 

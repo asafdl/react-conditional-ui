@@ -18,7 +18,7 @@ export class ConditionDataProvider {
         this.diagnostics = new DiagnosticsProvider(parser, this.segments);
     }
 
-    public parseCompound(text: string): ConditionGroup | null {
+    public parseComplexCondition(text: string): ConditionGroup | null {
         return this.segments.parseConditions(text);
     }
 

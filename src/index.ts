@@ -5,7 +5,8 @@ export { Input } from "./components/Input";
 export { Output } from "./components/Output";
 export { useConditionalInput } from "./hooks/useConditionalInput";
 export { useConditionalOutput } from "./hooks/useConditionalOutput";
-export { ConditionDataProvider as ConditionParser } from "./condition-data-provider";
+export { useConditionDataProvider } from "./hooks/useConditionDataProvider";
+export { ConditionDataProvider, ConditionDataProvider as ConditionParser } from "./condition-data-provider";
 export { DEFAULT_OPERATORS } from "./fuzzy/operators";
 export type {
     FieldOption,
@@ -23,3 +24,7 @@ export type { InputProps } from "./components/Input";
 export type { OutputProps, GroupMutations } from "./components/Output";
 export type { UseConditionalInputOptions } from "./hooks/useConditionalInput";
 export type { UseConditionalOutputOptions } from "./hooks/useConditionalOutput";
+export type {
+    UseConditionDataProviderOptions,
+    UseConditionDataProviderResult,
+} from "./hooks/useConditionDataProvider";

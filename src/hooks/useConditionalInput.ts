@@ -1,7 +1,7 @@
-import { useState, useCallback, useMemo } from "react";
-import { ConditionDataProvider } from "../condition-data-provider";
+import { useState, useCallback } from "react";
 import { DEFAULT_OPERATORS } from "../condition-structure";
 import type { FieldOption, OperatorOption, ConditionGroup, Diagnostic } from "../types";
+import { useConditionDataProvider } from "./useConditionDataProvider";
 
 export type UseConditionalInputOptions = {
     fields: FieldOption[];
@@ -22,7 +22,10 @@ export function useConditionalInput({
     const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
     const text = value ?? internal;
 
-    const parser = useMemo(() => new ConditionDataProvider(fields, operators), [fields, operators]);
+    const { parseComplexCondition, getSuggestion, getCompletions, diagnose } = useConditionDataProvider({
+        fields,
+        operators,
+    });
 
     const handleChange = useCallback(
         (next: string) => {
@@ -34,7 +37,7 @@ export function useConditionalInput({
     );
 
     const handleSubmit = useCallback(() => {
-        const group = parser.parseCompound(text);
+        const group = parseComplexCondition(text);
         if (group) {
             const hasInvalid = group.entries.some(
                 (e) =>
@@ -50,14 +53,8 @@ export function useConditionalInput({
                 return;
             }
         }
-        setDiagnostics(parser.diagnose(text));
-    }, [text, parser, value, onChange, onSubmit]);
-
-    const getSuggestion = useCallback((input: string) => parser.getSuggestion(input), [parser]);
-    const getCompletions = useCallback(
-        (input: string, limit?: number) => parser.getCompletions(input, limit),
-        [parser],
-    );
+        setDiagnostics(diagnose(text));
+    }, [text, parseComplexCondition, diagnose, value, onChange, onSubmit]);
 
     return { text, diagnostics, handleChange, handleSubmit, getSuggestion, getCompletions };
 }
