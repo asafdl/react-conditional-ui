@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/asafdl/react-conditional-ui/compare/v1.0.0...v1.1.0) (2026-04-12)
+
+
+### Features
+
+* api for condition data provider ([ff65b78](https://github.com/asafdl/react-conditional-ui/commit/ff65b78b34781dc852e28260cccd479674bd8929))
+
 # 1.0.0 (2026-04-07)
 
 
