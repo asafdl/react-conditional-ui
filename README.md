@@ -173,9 +173,9 @@ Available namespaces: `parser`, `match-engine`.
 
 ```bash
 npm install
-npm run dev          # starts the Vite demo app
-npm run build        # builds the library (tsup)
-npm test             # runs Vitest
-npm run lint         # ESLint
-npm run format       # Prettier
+npm run dev
+npm run build
+npm test
+npm run lint
+npm run format
 ```
