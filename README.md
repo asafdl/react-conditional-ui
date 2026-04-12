@@ -168,7 +168,6 @@ Available namespaces: `parser`, `match-engine`.
 - `SuggestionsProvider.completionsForSegment` is ~80 lines with repetitive branching — simplify
 - `stripLeadingNoise` + `NOISE_WORDS` in `word-utils.ts` is domain-specific, not a word utility
 - `segments.ts` line 1: `import { log } from "debug"` is wrong — `debug` default-exports a factory
-- Test coverage gaps: no dedicated tests for `SegmentResolver`, `SuggestionsProvider`, `DiagnosticsProvider`, `MatchEngine`, scoring functions
 
 ## Local development
 

@@ -1,9 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import {
-    applyOutputDragEnd,
-    UNGROUP_ZONE_ID,
-    GROUP_DROPPABLE_PREFIX,
-} from "../output-drag-end";
+import { applyOutputDragEnd, UNGROUP_ZONE_ID, GROUP_DROPPABLE_PREFIX } from "../output-drag-end";
 import type { ConditionGroup, ParsedCondition } from "../../types";
 
 const stubCondition = {} as ParsedCondition;
