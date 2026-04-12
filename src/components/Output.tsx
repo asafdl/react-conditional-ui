@@ -16,18 +16,30 @@ import type {
 } from "../types";
 import type { GroupMutations } from "../hooks/useConditionalOutput";
 
-export type OutputProps = {
+type SharedOutputProps = {
     fields: FieldOption[];
     operators: OperatorOption[];
-    /** Controlled groups. Omit for uncontrolled (internal state). */
-    groups?: ConditionGroup[];
-    /** Fires whenever groups change (works in both controlled and uncontrolled mode). */
-    onGroupsChange?: (groups: ConditionGroup[]) => void;
-    /** Default config applied to every group unless overridden by group.config. */
     defaultGroupConfig?: GroupConfig;
     className?: string;
     style?: React.CSSProperties;
 };
+
+export type ManagedOutputProps = SharedOutputProps & {
+    onGroupsChange?: (groups: ConditionGroup[]) => void;
+    groups?: undefined;
+};
+
+export type ControlledOutputProps = SharedOutputProps & {
+    groups: ConditionGroup[];
+    onGroupsChange: (groups: ConditionGroup[]) => void;
+};
+
+export type ReadOnlyOutputProps = SharedOutputProps & {
+    groups: ConditionGroup[];
+    onGroupsChange?: undefined;
+};
+
+export type OutputProps = ManagedOutputProps | ControlledOutputProps | ReadOnlyOutputProps;
 
 export type { GroupMutations };
 
@@ -40,21 +52,101 @@ const DEFAULT_GROUP_CONFIG: Required<Omit<GroupConfig, "label" | "connector">> =
     variant: "outlined",
 };
 
-export function Output({
+export function Output(props: OutputProps) {
+    if (isManagedOutput(props)) return <ManagedOutput {...props} />;
+    if (isReadOnlyOutput(props)) return <ReadOnlyOutput {...props} />;
+    return <ControlledOutput {...props} />;
+}
+
+export function ManagedOutput({
     fields,
     operators,
-    groups: controlledGroups,
     onGroupsChange,
     defaultGroupConfig,
     className,
     style,
-}: OutputProps) {
-    const { groups, mutations } = useConditionalOutput({
-        groups: controlledGroups,
-        onGroupsChange,
-    });
+}: ManagedOutputProps) {
+    const { groups, mutations } = useConditionalOutput({ onGroupsChange });
+    return (
+        <OutputView
+            groups={groups}
+            mutations={mutations}
+            readOnly={false}
+            fields={fields}
+            operators={operators}
+            defaultGroupConfig={defaultGroupConfig}
+            className={className}
+            style={style}
+        />
+    );
+}
 
-    const readOnly = controlledGroups !== undefined && !onGroupsChange;
+export function ControlledOutput({
+    fields,
+    operators,
+    groups,
+    onGroupsChange,
+    defaultGroupConfig,
+    className,
+    style,
+}: ControlledOutputProps) {
+    const { mutations } = useConditionalOutput({ groups, onGroupsChange });
+    return (
+        <OutputView
+            groups={groups}
+            mutations={mutations}
+            readOnly={false}
+            fields={fields}
+            operators={operators}
+            defaultGroupConfig={defaultGroupConfig}
+            className={className}
+            style={style}
+        />
+    );
+}
+
+export function ReadOnlyOutput({
+    fields,
+    operators,
+    groups,
+    defaultGroupConfig,
+    className,
+    style,
+}: ReadOnlyOutputProps) {
+    const { mutations } = useConditionalOutput({ groups });
+    return (
+        <OutputView
+            groups={groups}
+            mutations={mutations}
+            readOnly={true}
+            fields={fields}
+            operators={operators}
+            defaultGroupConfig={defaultGroupConfig}
+            className={className}
+            style={style}
+        />
+    );
+}
+
+function OutputView({
+    groups,
+    mutations,
+    readOnly,
+    fields,
+    operators,
+    defaultGroupConfig,
+    className,
+    style,
+}: {
+    groups: ConditionGroup[];
+    mutations: GroupMutations;
+    readOnly: boolean;
+    fields: FieldOption[];
+    operators: OperatorOption[];
+    defaultGroupConfig?: GroupConfig;
+    className?: string;
+    style?: React.CSSProperties;
+}) {
     const effectiveDefault: GroupConfig | undefined = readOnly
         ? { editable: false, removable: false, ...defaultGroupConfig }
         : defaultGroupConfig;
@@ -99,6 +191,14 @@ export function Output({
             </DropZone>
         </OutputDndContext>
     );
+}
+
+function isManagedOutput(props: OutputProps): props is ManagedOutputProps {
+    return props.groups === undefined;
+}
+
+function isReadOnlyOutput(props: OutputProps): props is ReadOnlyOutputProps {
+    return props.groups !== undefined && props.onGroupsChange === undefined;
 }
 
 function resolveConfig(groupConfig?: GroupConfig, defaultConfig?: GroupConfig): ResolvedConfig {

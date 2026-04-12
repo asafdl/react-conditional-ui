@@ -1,34 +1,18 @@
-import type { FieldOption, FieldType, OperatorOption, ParsedCondition } from "../types";
+import type { FieldOption, ParsedCondition } from "../types";
 import { createLogger } from "../logger";
 import { Operator, Value, Field } from "../condition-structure";
-import { adjustOperatorScore } from "../fuzzy/score";
 import { stripLeadingNoise } from "../fuzzy/word-utils";
-import { MatchEngine, type FuseMatch } from "../fuzzy/match-engine";
+import { MatchEngine } from "../fuzzy/match-engine";
+import { ConditionQueryHelper } from "./query-helper";
 
 const log = createLogger("parser");
 
-type OpCandidate = {
-    match: FuseMatch<OperatorOption>;
-    raw: string;
-    endIdx: number;
-    adjustedScore: number;
-};
-
-const TYPE_ALLOWED_OPS: Record<FieldType, Set<string>> = {
-    number: new Set(["eq", "ne", "gt", "lt", "gte", "lte"]),
-    enum: new Set(["eq", "ne"]),
-    text: new Set(["eq", "ne", "contains", "starts_with"]),
-};
-
 export class ConditionParser {
-    readonly fields: FieldOption[];
-    readonly operators: OperatorOption[];
-    private readonly engine: MatchEngine;
+    private readonly query: ConditionQueryHelper;
 
-    constructor(engine: MatchEngine) {
-        this.fields = engine.fields;
-        this.operators = engine.operators;
-        this.engine = engine;
+    constructor(engine: MatchEngine, queryHelper?: ConditionQueryHelper) {
+        this.query =
+            queryHelper ?? new ConditionQueryHelper(engine, engine.fields, engine.operators);
     }
 
     public parse(text: string): ParsedCondition | null {
@@ -39,12 +23,16 @@ export class ConditionParser {
         const words = stripLeadingNoise(allWords);
         if (words.length === 0) return null;
 
-        const fieldResult = this.identifyField(words);
+        const fieldResult = this.query.identifyField(words);
         if (!fieldResult) return null;
 
         if (fieldResult.remaining.length === 0) {
             return {
-                field: fieldResult.field,
+                field: new Field(
+                    fieldResult.raw,
+                    fieldResult.fieldOption.value,
+                    fieldResult.fieldOption.label,
+                ),
                 operator: Operator.invalid(""),
                 value: Value.empty(),
                 score: fieldResult.fieldScore,
@@ -57,7 +45,11 @@ export class ConditionParser {
         );
 
         const result: ParsedCondition = {
-            field: fieldResult.field,
+            field: new Field(
+                fieldResult.raw,
+                fieldResult.fieldOption.value,
+                fieldResult.fieldOption.label,
+            ),
             operator,
             value,
             score: fieldResult.fieldScore + operatorScore,
@@ -80,55 +72,11 @@ export class ConditionParser {
         return result;
     }
 
-    public identifyField(words: string[]): {
-        field: Field;
-        fieldOption: FieldOption;
-        fieldScore: number;
-        remaining: string[];
-    } | null {
-        let best: { candidate: string; match: FuseMatch<FieldOption>; wordCount: number } | null =
-            null;
-
-        for (let i = words.length; i >= 1; i--) {
-            const candidate = words.slice(0, i).join(" ");
-            const match = this.engine.matchField(candidate);
-            if (match && (!best || match.score < best.match.score)) {
-                best = { candidate, match, wordCount: i };
-            }
-        }
-
-        if (!best) return null;
-
-        return {
-            field: new Field(best.candidate, best.match.option.value, best.match.option.label),
-            fieldOption: best.match.option,
-            fieldScore: best.match.score,
-            remaining: words.slice(best.wordCount),
-        };
-    }
-
-    public getOperatorCandidates(words: string[], fieldOption: FieldOption): OpCandidate[] {
-        const candidates: OpCandidate[] = [];
-
-        for (let start = 0; start < words.length; start++) {
-            for (let end = start + 1; end <= words.length; end++) {
-                const opRaw = words.slice(start, end).join(" ");
-                const opMatch = this.engine.matchOperator(opRaw, fieldOption);
-                if (!opMatch) continue;
-
-                const adjustedScore = adjustOperatorScore(opMatch.score, words, start, end);
-
-                candidates.push({
-                    match: opMatch,
-                    raw: opRaw,
-                    endIdx: end,
-                    adjustedScore,
-                });
-            }
-        }
-
-        candidates.sort((a, b) => a.adjustedScore - b.adjustedScore);
-
+    resolveOperator(
+        words: string[],
+        fieldOption: FieldOption,
+    ): { operator: Operator; value: Value; operatorScore: number } {
+        const candidates = this.query.getOperatorCandidates(words, fieldOption);
         if (candidates.length > 0) {
             log(
                 "operator candidates: %o",
@@ -137,15 +85,6 @@ export class ConditionParser {
                 ),
             );
         }
-
-        return candidates;
-    }
-
-    resolveOperator(
-        words: string[],
-        fieldOption: FieldOption,
-    ): { operator: Operator; value: Value; operatorScore: number } {
-        const candidates = this.getOperatorCandidates(words, fieldOption);
 
         if (candidates.length === 0) {
             return {
@@ -184,43 +123,5 @@ export class ConditionParser {
             value: MatchEngine.matchValue(valueRaw, fieldOption),
             operatorScore: best.adjustedScore,
         };
-    }
-
-    resolveOpsForField(field: FieldOption, allOps: OperatorOption[]): OperatorOption[] {
-        if (field.operators) return field.operators;
-        if (field.type) {
-            const allowed = TYPE_ALLOWED_OPS[field.type];
-            return allOps.filter((op) => allowed.has(op.value));
-        }
-        return allOps;
-    }
-
-    allowedOpsForField(field: FieldOption): OperatorOption[] {
-        return this.resolveOpsForField(field, this.operators);
-    }
-
-    prefixMatch(
-        partial: string,
-        candidates: string[],
-    ): { completion: string; display: string } | null {
-        const matches = this.prefixMatches(partial, candidates);
-        return matches.length > 0 ? matches[0] : null;
-    }
-
-    prefixMatches(
-        partial: string,
-        candidates: string[],
-        limit = 6,
-    ): { completion: string; display: string }[] {
-        const lower = partial.toLowerCase();
-        const results: { completion: string; display: string }[] = [];
-        for (const candidate of candidates) {
-            const cl = candidate.toLowerCase();
-            if (cl.startsWith(lower) && cl !== lower) {
-                results.push({ completion: cl.slice(lower.length), display: candidate });
-                if (results.length >= limit) break;
-            }
-        }
-        return results;
     }
 }

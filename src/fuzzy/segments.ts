@@ -12,6 +12,8 @@ type SplitCandidate = {
     connector: LogicalOperator;
 };
 
+type ConjunctionIndex = { index: number; conjunction: LogicalOperator };
+
 export class SegmentResolver {
     public constructor(private readonly parser: ConditionParser) {}
 
@@ -22,40 +24,21 @@ export class SegmentResolver {
     } {
         const originalWords = text.split(/\s+/);
         const lowerWords = originalWords.map((w) => w.toLowerCase());
-
-        const conjIndices: { index: number; conjunction: LogicalOperator }[] = [];
-        for (let i = 0; i < lowerWords.length; i++) {
-            if (lowerWords[i] === AND_CONJUNCTION || lowerWords[i] === OR_CONJUNCTION) {
-                conjIndices.push({ index: i, conjunction: lowerWords[i] as LogicalOperator });
-            }
-        }
-
+        const conjIndices = this.findConjunctionIndices(lowerWords);
+        const fallback = this.createSingleCandidate(text);
         if (conjIndices.length === 0) {
-            const single = this.parser.parse(text);
-            return {
-                segments: [text],
-                conditions: single ? [single] : [],
-                connector: AND_CONJUNCTION,
-            };
+            return fallback;
         }
 
-        const noSplit = this.parser.parse(text);
-        let best: SplitCandidate = {
-            segments: [text],
-            conditions: noSplit ? [noSplit] : [],
-            connector: AND_CONJUNCTION,
-        };
+        let best: SplitCandidate = fallback;
         let bestScore = scoreConditions(best.conditions, 1);
 
         for (const subset of powerSet(conjIndices)) {
             const connector = subset[0].conjunction;
             if (subset.some((s) => s.conjunction !== connector)) continue;
-
-            const splitIndices = subset.map((s) => s.index);
-            const segments = splitAtIndices(originalWords, splitIndices);
-            if (segments.some((s) => !s)) continue;
-
-            const conditions = this.parseSegments(segments);
+            const next = this.buildSplitCandidate(originalWords, subset, connector);
+            if (!next) continue;
+            const { segments, conditions } = next;
             const score = scoreConditions(conditions, segments.length);
 
             if (score < bestScore) {
@@ -64,37 +47,7 @@ export class SegmentResolver {
             }
         }
 
-        if (
-            best.conditions.length === 1 &&
-            best.conditions[0].value.isValid &&
-            best.conditions[0].value.matchedOption === null
-        ) {
-            const valueWords = best.conditions[0].value.raw.split(/\s+/);
-            const conjInValue = valueWords.find(
-                (w) => w.toLowerCase() === AND_CONJUNCTION || w.toLowerCase() === OR_CONJUNCTION,
-            );
-
-            if (conjInValue) {
-                const connector = conjInValue.toLowerCase() as LogicalOperator;
-                const matching = conjIndices.filter((c) => c.conjunction === connector);
-
-                for (const subset of powerSet(matching).reverse()) {
-                    const splitIndices = subset.map((s) => s.index);
-                    const segments = splitAtIndices(originalWords, splitIndices);
-                    if (segments.some((s) => !s)) continue;
-
-                    const conditions = this.parseSegments(segments);
-                    if (
-                        conditions.length === segments.length &&
-                        conditions.every((c) => c.field.isValid && c.operator.isValid)
-                    ) {
-                        return { segments, conditions, connector };
-                    }
-                }
-            }
-        }
-
-        return best;
+        return this.trySplitFromValueConjunction(best, originalWords, conjIndices) ?? best;
     }
 
     public parseConditions(text: string): ConditionGroup | null {
@@ -121,6 +74,79 @@ export class SegmentResolver {
             if (result) conditions.push(result);
         }
         return conditions;
+    }
+
+    private createSingleCandidate(text: string): SplitCandidate {
+        const parsed = this.parser.parse(text);
+        return {
+            segments: [text],
+            conditions: parsed ? [parsed] : [],
+            connector: AND_CONJUNCTION,
+        };
+    }
+
+    private findConjunctionIndices(words: string[]): ConjunctionIndex[] {
+        const indices: ConjunctionIndex[] = [];
+        for (let i = 0; i < words.length; i++) {
+            if (words[i] === AND_CONJUNCTION || words[i] === OR_CONJUNCTION) {
+                indices.push({ index: i, conjunction: words[i] as LogicalOperator });
+            }
+        }
+        return indices;
+    }
+
+    private buildSplitCandidate(
+        originalWords: string[],
+        splitPoints: ConjunctionIndex[],
+        connector: LogicalOperator,
+    ): SplitCandidate | null {
+        const splitIndices = splitPoints.map((s) => s.index);
+        const segments = splitAtIndices(originalWords, splitIndices);
+        if (segments.some((s) => !s)) return null;
+
+        return {
+            segments,
+            conditions: this.parseSegments(segments),
+            connector,
+        };
+    }
+
+    private trySplitFromValueConjunction(
+        best: SplitCandidate,
+        originalWords: string[],
+        conjIndices: ConjunctionIndex[],
+    ): SplitCandidate | null {
+        const onlyCondition = best.conditions[0];
+        if (
+            best.conditions.length !== 1 ||
+            !onlyCondition?.value.isValid ||
+            onlyCondition.value.matchedOption !== null
+        ) {
+            return null;
+        }
+
+        const valueWords = onlyCondition.value.raw.split(/\s+/);
+        const conjInValue = valueWords.find(
+            (w) => w.toLowerCase() === AND_CONJUNCTION || w.toLowerCase() === OR_CONJUNCTION,
+        );
+        if (!conjInValue) return null;
+
+        const connector = conjInValue.toLowerCase() as LogicalOperator;
+        const matching = conjIndices.filter((c) => c.conjunction === connector);
+
+        for (const subset of powerSet(matching).reverse()) {
+            const candidate = this.buildSplitCandidate(originalWords, subset, connector);
+            if (!candidate) continue;
+
+            if (
+                candidate.conditions.length === candidate.segments.length &&
+                candidate.conditions.every((c) => c.field.isValid && c.operator.isValid)
+            ) {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private getInherited(

@@ -1,10 +1,10 @@
 import { Diagnostic } from "../../types";
-import { ConditionParser } from "../../conditions/parser";
+import { ConditionQueryHelper } from "../../conditions/query-helper";
 import { SegmentResolver } from "../segments";
 
 export class DiagnosticsProvider {
     public constructor(
-        private readonly parser: ConditionParser,
+        private readonly query: ConditionQueryHelper,
         private readonly segmentResolver: SegmentResolver,
     ) {}
 
@@ -37,9 +37,7 @@ export class DiagnosticsProvider {
 
             if (!condition.operator.isValid) {
                 const fieldEnd = offset + condition.field.raw.length;
-                const fieldConfig = this.parser.fields.find(
-                    (f) => f.value === condition.field.value,
-                );
+                const fieldConfig = this.query.findFieldByValue(condition.field.value);
                 const hasRestriction = fieldConfig?.operators || fieldConfig?.type;
                 diagnostics.push({
                     start: fieldEnd,

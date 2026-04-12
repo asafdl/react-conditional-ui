@@ -1,7 +1,8 @@
 import Fuse from "fuse.js";
-import type { FieldOption, FieldType, OperatorOption } from "../types";
+import type { FieldOption, OperatorOption } from "../types";
 import { Value } from "../condition-structure/Value";
 import { createLogger } from "../logger";
+import { allowedOperatorsForField } from "./operator-policy";
 
 const log = createLogger("match-engine");
 const valueLog = createLogger("value");
@@ -9,11 +10,8 @@ const valueLog = createLogger("value");
 type FlatAlias = { alias: string; operator: OperatorOption };
 export type FuseMatch<T> = { option: T; score: number };
 
-const TYPE_ALLOWED_OPS: Record<FieldType, Set<string>> = {
-    number: new Set(["eq", "ne", "gt", "lt", "gte", "lte"]),
-    enum: new Set(["eq", "ne"]),
-    text: new Set(["eq", "ne", "contains", "starts_with"]),
-};
+const FUSE_THRESHOLD = 0.4;
+const OPERATOR_ALIAS_MIN_COVERAGE = 0.5;
 
 export class MatchEngine {
     readonly fields: FieldOption[];
@@ -29,44 +27,27 @@ export class MatchEngine {
 
         this.fieldFuse = new Fuse(fields, {
             keys: ["label"],
-            threshold: 0.4,
+            threshold: FUSE_THRESHOLD,
             includeScore: true,
         });
 
-        const flatAliases: FlatAlias[] = operators.flatMap((op) =>
-            op.aliases.map((alias) => ({ alias: alias.toLowerCase(), operator: op })),
-        );
-        this.opFuse = new Fuse(flatAliases, {
-            keys: ["alias"],
-            threshold: 0.4,
-            includeScore: true,
-        });
+        this.opFuse = this.createOperatorAliasFuse(operators);
 
         this.perFieldOpFuse = new Map();
         for (const field of fields) {
             const restricted = this.resolveOpsForField(field, operators);
             if (restricted !== operators) {
-                const aliases: FlatAlias[] = restricted.flatMap((op) =>
-                    op.aliases.map((alias) => ({ alias: alias.toLowerCase(), operator: op })),
-                );
-                this.perFieldOpFuse.set(
-                    field.value,
-                    new Fuse(aliases, { keys: ["alias"], threshold: 0.4, includeScore: true }),
-                );
+                this.perFieldOpFuse.set(field.value, this.createOperatorAliasFuse(restricted));
             }
         }
     }
 
     matchField(candidate: string): FuseMatch<FieldOption> | null {
         const results = this.fieldFuse.search(candidate);
-        if (results.length > 0 && (results[0].score ?? 1) <= 0.4) {
-            log(
-                "field match: %s -> %s (score: %f)",
-                candidate,
-                results[0].item.value,
-                results[0].score,
-            );
-            return { option: results[0].item, score: results[0].score ?? 1 };
+        const best = results[0];
+        if (best && MatchEngine.isWithinThreshold(best.score)) {
+            log("field match: %s -> %s (score: %f)", candidate, best.item.value, best.score);
+            return { option: best.item, score: best.score ?? 1 };
         }
         return null;
     }
@@ -74,20 +55,21 @@ export class MatchEngine {
     matchOperator(candidate: string, field?: FieldOption): FuseMatch<OperatorOption> | null {
         const fuse = (field && this.perFieldOpFuse.get(field.value)) ?? this.opFuse;
         const results = fuse.search(candidate);
-        if (results.length > 0 && (results[0].score ?? 1) <= 0.4) {
-            const alias = results[0].item.alias;
+        const best = results[0];
+        if (best && MatchEngine.isWithinThreshold(best.score)) {
+            const alias = best.item.alias;
             const candidateWords = candidate.split(/\s+/).length;
             const aliasWords = alias.split(/\s+/).length;
             if (candidateWords !== aliasWords) return null;
-            if (candidate.length < alias.length * 0.5) return null;
+            if (candidate.length < alias.length * OPERATOR_ALIAS_MIN_COVERAGE) return null;
 
             log(
                 "operator match: %s -> %s (score: %f)",
                 candidate,
-                results[0].item.operator.value,
-                results[0].score,
+                best.item.operator.value,
+                best.score,
             );
-            return { option: results[0].item.operator, score: results[0].score ?? 1 };
+            return { option: best.item.operator, score: best.score ?? 1 };
         }
         return null;
     }
@@ -136,19 +118,15 @@ export class MatchEngine {
 
         const fuse = new Fuse(knownValues, {
             keys: ["label", "value"],
-            threshold: 0.4,
+            threshold: FUSE_THRESHOLD,
             includeScore: true,
         });
 
         const results = fuse.search(raw);
-        if (results.length > 0 && (results[0].score ?? 1) <= 0.4) {
-            valueLog(
-                "fuzzy match: raw=%s -> %s (score: %f)",
-                raw,
-                results[0].item.value,
-                results[0].score,
-            );
-            return MatchEngine.applyValidator(raw, results[0].item, validateValue);
+        const best = results[0];
+        if (best && MatchEngine.isWithinThreshold(best.score)) {
+            valueLog("fuzzy match: raw=%s -> %s (score: %f)", raw, best.item.value, best.score);
+            return MatchEngine.applyValidator(raw, best.item, validateValue);
         }
 
         valueLog("no match: raw=%s", raw);
@@ -168,11 +146,21 @@ export class MatchEngine {
     }
 
     private resolveOpsForField(field: FieldOption, allOps: OperatorOption[]): OperatorOption[] {
-        if (field.operators) return field.operators;
-        if (field.type) {
-            const allowed = TYPE_ALLOWED_OPS[field.type];
-            return allOps.filter((op) => allowed.has(op.value));
-        }
-        return allOps;
+        return allowedOperatorsForField(field, allOps);
+    }
+
+    private createOperatorAliasFuse(operators: OperatorOption[]): Fuse<FlatAlias> {
+        const aliases: FlatAlias[] = operators.flatMap((op) =>
+            op.aliases.map((alias) => ({ alias: alias.toLowerCase(), operator: op })),
+        );
+        return new Fuse(aliases, {
+            keys: ["alias"],
+            threshold: FUSE_THRESHOLD,
+            includeScore: true,
+        });
+    }
+
+    private static isWithinThreshold(score: number | undefined): boolean {
+        return (score ?? 1) <= FUSE_THRESHOLD;
     }
 }

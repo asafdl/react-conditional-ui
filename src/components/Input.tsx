@@ -17,7 +17,7 @@ type BaseProps = {
     style?: React.CSSProperties;
 };
 
-type StandaloneProps = BaseProps & {
+export type ManagedInputProps = BaseProps & {
     fields: FieldOption[];
     operators?: OperatorOption[];
     value?: string;
@@ -25,7 +25,7 @@ type StandaloneProps = BaseProps & {
     onSubmit?: (group: ConditionGroup) => void;
 };
 
-type ControlledProps = BaseProps & {
+export type ControlledInputProps = BaseProps & {
     fields?: undefined;
     value: string;
     onChange: (value: string) => void;
@@ -35,7 +35,7 @@ type ControlledProps = BaseProps & {
     diagnostics?: Diagnostic[];
 };
 
-export type InputProps = StandaloneProps | ControlledProps;
+export type InputProps = ManagedInputProps | ControlledInputProps;
 
 type InputViewProps = {
     value: string;
@@ -50,10 +50,14 @@ type InputViewProps = {
 };
 
 export function Input(props: InputProps) {
-    if (isStandalone(props)) {
-        return <StandaloneInput {...props} />;
+    if (isManaged(props)) {
+        return <ManagedInput {...props} />;
     }
 
+    return <ControlledInput {...props} />;
+}
+
+export function ControlledInput(props: ControlledInputProps) {
     return (
         <InputView
             value={props.value}
@@ -69,7 +73,7 @@ export function Input(props: InputProps) {
     );
 }
 
-function isStandalone(props: InputProps): props is StandaloneProps {
+function isManaged(props: InputProps): props is ManagedInputProps {
     return props.fields !== undefined;
 }
 
@@ -158,7 +162,7 @@ const GhostInput = forwardRef<HTMLInputElement, GhostInputProps>(function GhostI
 
 // ── Component variants ──
 
-function StandaloneInput({
+export function ManagedInput({
     fields,
     operators,
     value: controlledValue,
@@ -167,7 +171,7 @@ function StandaloneInput({
     placeholder,
     className,
     style,
-}: StandaloneProps) {
+}: ManagedInputProps) {
     const { text, diagnostics, handleChange, handleSubmit, getSuggestion, getCompletions } =
         useConditionalInput({
             fields,

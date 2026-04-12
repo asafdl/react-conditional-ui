@@ -1,5 +1,6 @@
 import { MatchEngine } from "./fuzzy/match-engine";
 import { ConditionParser } from "./conditions/parser";
+import { ConditionQueryHelper } from "./conditions/query-helper";
 import { SuggestionsProvider } from "./fuzzy/providers/suggestions";
 import { DiagnosticsProvider } from "./fuzzy/providers/diagnostics";
 import type { FieldOption, OperatorOption, ConditionGroup, Diagnostic } from "./types";
@@ -12,10 +13,11 @@ export class ConditionDataProvider {
 
     public constructor(fields: FieldOption[], operators: OperatorOption[]) {
         const engine = new MatchEngine(fields, operators);
-        const parser = new ConditionParser(engine);
+        const query = new ConditionQueryHelper(engine, fields, operators);
+        const parser = new ConditionParser(engine, query);
         this.segments = new SegmentResolver(parser);
-        this.suggestions = new SuggestionsProvider(parser, this.segments);
-        this.diagnostics = new DiagnosticsProvider(parser, this.segments);
+        this.suggestions = new SuggestionsProvider(query, this.segments);
+        this.diagnostics = new DiagnosticsProvider(query, this.segments);
     }
 
     public parseComplexCondition(text: string): ConditionGroup | null {

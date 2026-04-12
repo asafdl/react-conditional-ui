@@ -1,10 +1,10 @@
 import { AND_CONJUNCTION, OR_CONJUNCTION } from "../../consts";
-import { ConditionParser } from "../../conditions/parser";
+import { ConditionQueryHelper } from "../../conditions/query-helper";
 import { SegmentResolver } from "../segments";
 
 export class SuggestionsProvider {
     public constructor(
-        private readonly parser: ConditionParser,
+        private readonly query: ConditionQueryHelper,
         private readonly segmentResolver: SegmentResolver,
     ) {}
 
@@ -39,7 +39,8 @@ export class SuggestionsProvider {
     ): { completion: string; display: string }[] {
         const input = text.trimStart().toLowerCase();
         if (!input) {
-            return this.parser.fields
+            return this.query
+                .getFields()
                 .slice(0, limit)
                 .map((f) => ({ completion: f.label, display: f.label }));
         }
@@ -48,13 +49,13 @@ export class SuggestionsProvider {
         const words = input.split(/\s+/).filter(Boolean);
         if (words.length === 0) return [];
 
-        const fieldResult = this.parser.identifyField(words);
+        const fieldResult = this.query.identifyField(words);
 
         if (!fieldResult) {
             if (endsWithSpace) return [];
-            return this.parser.prefixMatches(
+            return this.query.prefixMatches(
                 words.join(" "),
-                this.parser.fields.map((f) => f.label),
+                this.query.getFields().map((f) => f.label),
                 limit,
             );
         }
@@ -63,27 +64,27 @@ export class SuggestionsProvider {
 
         if (fieldResult.remaining.length === 0) {
             if (endsWithSpace) {
-                const ops = this.parser.allowedOpsForField(fieldOption);
+                const ops = this.query.allowedOpsForField(fieldOption);
                 return ops
                     .slice(0, limit)
                     .map((op) => ({ completion: op.label, display: op.label }));
             }
-            return this.parser.prefixMatches(
+            return this.query.prefixMatches(
                 words.join(" "),
-                this.parser.fields.map((f) => f.label),
+                this.query.getFields().map((f) => f.label),
                 limit,
             );
         }
 
-        const candidates = this.parser.getOperatorCandidates(fieldResult.remaining, fieldOption);
+        const candidates = this.query.getOperatorCandidates(fieldResult.remaining, fieldOption);
         const bestOp = candidates[0];
 
         if (!bestOp || bestOp.endIdx > fieldResult.remaining.length) {
             if (endsWithSpace) return [];
-            const ops = this.parser.allowedOpsForField(fieldOption);
+            const ops = this.query.allowedOpsForField(fieldOption);
             const aliases = ops.flatMap((op) => op.aliases);
             const opPartial = fieldResult.remaining.join(" ");
-            return this.parser.prefixMatches(opPartial, aliases, limit);
+            return this.query.prefixMatches(opPartial, aliases, limit);
         }
 
         const valueRaw = fieldResult.remaining.slice(bestOp.endIdx).join(" ");
@@ -96,16 +97,16 @@ export class SuggestionsProvider {
                     .slice(0, limit)
                     .map((v) => ({ completion: v.label, display: v.label }));
             }
-            const ops = this.parser.allowedOpsForField(fieldOption);
+            const ops = this.query.allowedOpsForField(fieldOption);
             const aliases = ops.flatMap((op) => op.aliases);
             const opPartial = fieldResult.remaining.join(" ");
-            return this.parser.prefixMatches(opPartial, aliases, limit);
+            return this.query.prefixMatches(opPartial, aliases, limit);
         }
 
         if (endsWithSpace) return [];
         const fieldValues = fieldOption.fieldValues;
         if (!fieldValues?.length) return [];
-        return this.parser.prefixMatches(
+        return this.query.prefixMatches(
             valueRaw,
             fieldValues.map((v) => v.label),
             limit,

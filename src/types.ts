@@ -59,12 +59,29 @@ export type Diagnostic = {
     message: string;
 };
 
+export type ConditionalUIInputSlotProps = {
+    fields: FieldOption[];
+    operators: OperatorOption[];
+    value?: string;
+    onChange?: (raw: string) => void;
+    onSubmit: (group: ConditionGroup) => void;
+};
+
+export type ConditionalUIOutputSlotProps = {
+    groups: ConditionGroup[];
+    fields: FieldOption[];
+    operators: OperatorOption[];
+    onGroupsChange: (groups: ConditionGroup[]) => void;
+};
+
 export type ConditionalUIProps = {
     fields: FieldOption[];
     operators?: OperatorOption[];
     value?: string;
     onChange?: (raw: string) => void;
     onConditionsChange?: (groups: ConditionGroup[]) => void;
+    InputComponent?: React.ComponentType<ConditionalUIInputSlotProps>;
+    OutputComponent?: React.ComponentType<ConditionalUIOutputSlotProps>;
     className?: string;
     style?: React.CSSProperties;
 };

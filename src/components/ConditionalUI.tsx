@@ -1,5 +1,5 @@
-import { Input } from "./Input";
-import { Output } from "./Output";
+import { ManagedInput } from "./Input";
+import { ControlledOutput } from "./Output";
 import { useConditionalOutput } from "../hooks/useConditionalOutput";
 import { DEFAULT_OPERATORS } from "../condition-structure";
 import type { ConditionalUIProps } from "../types";
@@ -10,6 +10,8 @@ export function ConditionalUI({
     value,
     onChange,
     onConditionsChange,
+    InputComponent = ManagedInput,
+    OutputComponent = ControlledOutput,
     className,
     style,
 }: ConditionalUIProps) {
@@ -21,14 +23,14 @@ export function ConditionalUI({
 
     return (
         <div className={rootClass} style={style}>
-            <Input
+            <InputComponent
                 fields={fields}
                 operators={operators}
                 value={value}
                 onChange={onChange}
                 onSubmit={mutations.addGroup}
             />
-            <Output
+            <OutputComponent
                 groups={groups}
                 fields={fields}
                 operators={operators}
