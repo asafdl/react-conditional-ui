@@ -1,7 +1,10 @@
 import { useCallback, useState, useRef, useLayoutEffect, forwardRef } from "react";
 import TextField from "@mui/material/TextField";
+import ClickAwayListener from "@mui/material/ClickAwayListener";
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
+import AddIcon from "@mui/icons-material/Add";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import Tooltip from "@mui/material/Tooltip";
@@ -193,7 +196,7 @@ function InputView({
     value,
     onChange,
     onSubmit,
-    placeholder = "e.g. age greater than 18, ctrl+space for suggestions",
+    placeholder = "e.g. age greater than 18 — Control(Option)+Space for suggestions",
     getSuggestion,
     getCompletions,
     diagnostics = [],
@@ -204,12 +207,19 @@ function InputView({
     const [activeIndex, setActiveIndex] = useState(-1);
     const [cursorLeft, setCursorLeft] = useState(0);
     const listRef = useRef<HTMLUListElement>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
 
     const ghost = getSuggestion && value ? (getSuggestion(value)?.completion ?? null) : null;
 
     function closeCompletions() {
         setCompletions([]);
         setActiveIndex(-1);
+    }
+
+    function handleCompletionsClickAway() {
+        if (completions.length === 0) return;
+        closeCompletions();
+        queueMicrotask(() => inputRef.current?.focus());
     }
 
     function openCompletions() {
@@ -234,7 +244,9 @@ function InputView({
     }
 
     function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-        if (e.key === " " && e.ctrlKey) {
+        const isSpace = e.key === " " || e.code === "Space";
+        const suggestChord = isSpace && !e.shiftKey && !e.metaKey && (e.ctrlKey || e.altKey);
+        if (suggestChord) {
             e.preventDefault();
             openCompletions();
             return;
@@ -298,70 +310,102 @@ function InputView({
     };
 
     return (
-        <div className={["rcui-input-wrapper", className].filter(Boolean).join(" ")} style={style}>
-            <TextField
-                fullWidth
-                variant="outlined"
-                size="small"
-                placeholder={placeholder}
-                value={value}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                onBlur={() => setTimeout(closeCompletions, 150)}
-                className="rcui-input"
-                slotProps={{
-                    input: {
-                        inputComponent: GhostInput,
-                        inputProps: ghostInputProps,
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                {hasErrors ? (
-                                    <Tooltip title={errorSummary} arrow>
-                                        <IconButton size="small" onClick={onSubmit} edge="end">
-                                            <ErrorOutlineIcon
-                                                fontSize="small"
-                                                className="rcui-adornment-error"
-                                            />
-                                        </IconButton>
-                                    </Tooltip>
-                                ) : (
-                                    <IconButton size="small" onClick={onSubmit} edge="end">
-                                        <KeyboardReturnIcon
-                                            fontSize="small"
-                                            className="rcui-adornment-enter"
-                                        />
-                                    </IconButton>
-                                )}
-                            </InputAdornment>
-                        ),
-                    },
-                }}
-            />
-            {completions.length > 0 && (
-                <ul
-                    ref={listRef}
-                    className="rcui-completions"
-                    role="listbox"
-                    style={{ left: cursorLeft }}
-                >
-                    {completions.map((item, i) => (
-                        <li
-                            key={item.display}
-                            id={`rcui-completion-${i}`}
-                            role="option"
-                            aria-selected={i === activeIndex}
-                            className={`rcui-completion-item${i === activeIndex ? " rcui-completion-item--active" : ""}`}
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                acceptCompletion(item);
-                            }}
-                            onMouseEnter={() => setActiveIndex(i)}
-                        >
-                            {item.display}
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
+        <ClickAwayListener onClickAway={handleCompletionsClickAway}>
+            <div
+                className={["rcui-input-wrapper", className].filter(Boolean).join(" ")}
+                style={style}
+            >
+                <TextField
+                    fullWidth
+                    variant="outlined"
+                    size="small"
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    className="rcui-input"
+                    slotProps={{
+                        input: {
+                            inputRef,
+                            inputComponent: GhostInput,
+                            inputProps: ghostInputProps,
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <Stack direction="row" alignItems="center" spacing={0}>
+                                        {getCompletions ? (
+                                            <Tooltip title="Show suggestions" arrow>
+                                                <IconButton
+                                                    size="small"
+                                                    aria-label="Show suggestions"
+                                                    className="rcui-adornment-suggestions"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        openCompletions();
+                                                    }}
+                                                >
+                                                    <AddIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        ) : null}
+                                        {hasErrors ? (
+                                            <Tooltip title={errorSummary} arrow>
+                                                <IconButton
+                                                    size="small"
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={onSubmit}
+                                                    edge="end"
+                                                >
+                                                    <ErrorOutlineIcon
+                                                        fontSize="small"
+                                                        className="rcui-adornment-error"
+                                                    />
+                                                </IconButton>
+                                            </Tooltip>
+                                        ) : (
+                                            <IconButton
+                                                size="small"
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                onClick={onSubmit}
+                                                edge="end"
+                                            >
+                                                <KeyboardReturnIcon
+                                                    fontSize="small"
+                                                    className="rcui-adornment-enter"
+                                                />
+                                            </IconButton>
+                                        )}
+                                    </Stack>
+                                </InputAdornment>
+                            ),
+                        },
+                    }}
+                />
+                {completions.length > 0 && (
+                    <ul
+                        ref={listRef}
+                        className="rcui-completions"
+                        role="listbox"
+                        style={{ left: cursorLeft }}
+                    >
+                        {completions.map((item, i) => (
+                            <li
+                                key={item.display}
+                                id={`rcui-completion-${i}`}
+                                role="option"
+                                aria-selected={i === activeIndex}
+                                className={`rcui-completion-item${i === activeIndex ? " rcui-completion-item--active" : ""}`}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    acceptCompletion(item);
+                                }}
+                                onMouseEnter={() => setActiveIndex(i)}
+                            >
+                                {item.display}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </ClickAwayListener>
     );
 }

@@ -237,6 +237,10 @@
     color: rgba(255, 255, 255, 0.3) !important;
 }
 
+.rcui-adornment-suggestions {
+    color: rgba(255, 255, 255, 0.3) !important;
+}
+
 .rcui-adornment-error {
     color: #f5c542 !important;
 }

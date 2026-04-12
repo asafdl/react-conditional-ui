@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Input } from "../Input";
 import { useConditionalInput } from "../../hooks/useConditionalInput";
 import { DEFAULT_OPERATORS } from "../../condition-structure";
@@ -19,7 +20,7 @@ const fields = [
 
 afterEach(cleanup);
 
-const placeholderRe = /ctrl\+space/;
+const placeholderRe = /for suggestions/;
 
 function getTextFieldInput() {
     return screen.getByPlaceholderText(placeholderRe);
@@ -89,6 +90,24 @@ describe("Input (standalone)", () => {
         expect(screen.getByRole("listbox")).toBeInTheDocument();
         expect(screen.getByRole("option", { name: "Age" })).toBeInTheDocument();
         expect(screen.getByRole("option", { name: "Status" })).toBeInTheDocument();
+    });
+
+    it("opens field completions on Option+Space (Mac)", () => {
+        render(<Input fields={fields} operators={DEFAULT_OPERATORS} />);
+
+        const input = getTextFieldInput();
+        fireEvent.keyDown(input, { key: " ", code: "Space", altKey: true });
+
+        expect(screen.getByRole("listbox")).toBeInTheDocument();
+    });
+
+    it("opens field completions when clicking the suggestions (+) button", async () => {
+        render(<Input fields={fields} operators={DEFAULT_OPERATORS} />);
+
+        await userEvent.click(screen.getByRole("button", { name: "Show suggestions" }));
+
+        expect(screen.getByRole("listbox")).toBeInTheDocument();
+        expect(screen.getByRole("option", { name: "Age" })).toBeInTheDocument();
     });
 
     it("accepts the active completion with Enter", async () => {
