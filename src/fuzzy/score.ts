@@ -1,4 +1,6 @@
-import { ParsedCondition } from "../types";
+import type { ParsedCondition } from "../types";
+
+export type ScoredCondition = ParsedCondition & { score: number };
 
 const AMBIGUOUS_OP_WORDS = new Set(["is", "has"]);
 const AMBIGUITY_PENALTY = 0.35;
@@ -33,7 +35,7 @@ export function adjustOperatorScore(
     return score;
 }
 
-export function scoreConditions(conditions: ParsedCondition[], segmentCount: number): number {
+export function scoreConditions(conditions: ScoredCondition[], segmentCount: number): number {
     const unparsed = segmentCount - conditions.length;
     let score = unparsed * UNPARSED_PENALTY;
     for (const c of conditions) {

@@ -44,7 +44,6 @@ function makeCondition(
         field: new Field(fieldLabel, fieldOption.value, fieldOption.label),
         operator: new Operator(opLabel, opOption.value, opOption.label),
         value: new Value(val),
-        score: 0,
     };
 }
 

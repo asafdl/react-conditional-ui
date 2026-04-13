@@ -4,11 +4,10 @@
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/asafdl/878c647c0e4534366ac2787e3871ce81/raw/coverage.json)
 ![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-
 <div align="left">
   <img src="logo.png" alt="react-conditional-ui logo" width="380" />
 </div>
-React component library for building conditions via natural language input. Users type plain-English phrases (e.g. "status is active") instead of filling out combo boxes. A fuzzy parser resolves fields, operators, and values, with support for compound `AND`/`OR` conditions and drag-and-drop grouping.
+React component library for "type to build" conditions via natural language input, <b>fast and lightweight</b>, no LLM required! Users type plain-English phrases (e.g. "status is active") instead of filling out combo boxes. A fuzzy parser resolves fields, operators, and values, with support for compound `AND`/`OR` conditions that transform into interactive drag-and-drop condition groups.
 
 **[Live Demo](https://asafdl.github.io/react-conditional-ui/)**
 
@@ -83,32 +82,108 @@ Read-only (pass `groups` without `onGroupsChange`):
 <Output groups={groups} fields={fields} operators={operators} />
 ```
 
+## Data Model
+
+The `<Input />` parser converts free-text into a `ConditionGroup` which the `<Output />` renders. The full type hierarchy:
+
+```
+ConditionGroup
+├── id: string
+├── config?: GroupConfig
+└── entries: ConditionEntry[]
+        ├── id: string
+        ├── connector: "and" | "or"
+        └── condition: ParsedCondition
+                ├── field:    { raw, value, label, isValid }
+                ├── operator: { raw, value, label, isValid }
+                └── value:    { raw, value, label, isValid, errorMessage?, matchedOption? }
+```
+
+For example, typing `"status is active and age greater than 18"` produces:
+
+```json
+{
+  "id": "g1",
+  "entries": [
+    {
+      "id": "e1",
+      "connector": "and",
+      "condition": {
+        "field":    { "raw": "status",       "value": "status", "label": "Status",       "isValid": true },
+        "operator": { "raw": "is",           "value": "is",     "label": "is",           "isValid": true },
+        "value":    { "raw": "active",       "value": "active", "label": "active",       "isValid": true }
+      }
+    },
+    {
+      "id": "e2",
+      "connector": "and",
+      "condition": {
+        "field":    { "raw": "age",          "value": "age",    "label": "Age",          "isValid": true },
+        "operator": { "raw": "greater than", "value": "gt",     "label": "greater than", "isValid": true },
+        "value":    { "raw": "18",           "value": "18",     "label": "18",           "isValid": true }
+      }
+    }
+  ]
+}
+```
+
+This is the same object surfaced by `onConditionsChange` (as an array of groups), `onSubmit` on the `<Input />`, and `useConditionalOutput`'s `groups` state.
+
+## Customization
+
+Use these when you want to keep parser behavior but tailor UI/interaction details.
+
+### Component-level options
+
+- `<ConditionalUI />`: pass `InputComponent` and/or `OutputComponent` to replace either half of the default UI.
+- `<Input />`: customize `placeholder`, `className`, and `style`.
+- `<Output />`: customize `defaultGroupConfig`, `className`, and `style`.
+- All components support controlled patterns (`value`/`onChange`, `groups`/`onGroupsChange`) where applicable.
+
+```tsx
+<ConditionalUI
+    fields={fields}
+    InputComponent={MyInput}
+    OutputComponent={MyOutput}
+    onConditionsChange={setGroups}
+/>
+```
+
+### Field-level parser options
+
+`FieldOption` supports per-field parsing behavior:
+
+- `operators`: override allowed operators for a specific field
+- `fieldValues`: provide known values (useful for enum-like suggestions)
+- `type`: built-in value checks (`"text" | "number" | "enum"`)
+- `validateValue`: custom validator (`true` or error string)
+
 ### Group configuration
 
-Each `ConditionGroup` accepts an optional `config` to control per-group behavior:
+Each `ConditionGroup` can define `config`:
 
 ```tsx
 const group: ConditionGroup = {
     id: "1",
     entries: [...],
     config: {
-        editable: false,   // disable chip editing
-        removable: false,  // hide remove buttons
+        editable: false,
+        removable: false,
         variant: "filled", // "outlined" (default) or "filled"
-        label: "Filters",  // label above the group
+        label: "Filters",
     },
 };
 ```
 
-You can also set defaults for all groups via `defaultGroupConfig` on `<Output />`.
+Set defaults for all groups with `defaultGroupConfig` on `<Output />`.
 
-## Hooks Instead of Components
+### Hooks for custom UI
 
-The library’s behavior is split between **presentation** (`<Input />`, `<Output />`, `<ConditionalUI />`) and **data**: a memoized `ConditionDataProvider` facade (parse, suggest, complete, diagnose) plus optional React hooks for local state. You can use the hooks and export types only, and build your own inputs (native `<input>`, design-system fields, mobile, etc.) or your own condition display (lists, tables, read-only summaries).
+Use hooks when you want your own input/output rendering and state wiring.
 
 ### `useConditionDataProvider`
 
-Lowest-level hook: creates a stable `ConditionDataProvider` for the given `fields` and optional `operators`, and returns `parseComplexCondition`, `getSuggestion`, `getCompletions`, `diagnose`, plus the raw `provider` instance. No text state, no submit handler—only the core API. Use this when you already manage `value` / `onChange` and want full control over when to parse or show diagnostics.
+Lowest-level API: returns `parseComplexCondition`, `getSuggestion`, `getCompletions`, `diagnose`, and `provider`. Use it when you already control input state and submit flow.
 
 ```tsx
 import { useConditionDataProvider, DEFAULT_OPERATORS } from "react-conditional-ui";
@@ -124,11 +199,13 @@ const issues = diagnose(raw);
 
 ### `useConditionalInput`
 
-Opinionated input helper: internal or controlled string state, clears diagnostics on change, validates on submit, and wires `parseCompound` / `diagnose` for you. Pair it with `<Input />` when you need controlled mode (see above), or with your own field by calling `handleChange`, `handleSubmit`, and passing through `getSuggestion` / `getCompletions` / `diagnostics`.
+Input-state helper for controlled/uncontrolled text, submit validation, and diagnostics.
 
 ### `useConditionalOutput`
 
-Group list and mutations without rendering `<Output />`. Same `groups` / `onGroupsChange` controlled or uncontrolled patterns as the component; use `mutations` (`addGroup`, `removeEntry`, `toggleConnector`, `updateCondition`, reorder helpers, etc.) from your own UI.
+Group-state + mutations without rendering `<Output />`; use this to build your own chips/list/table UI.
+
+Includes helpers like `addGroup`, `removeEntry`, `toggleConnector`, `updateCondition`, `updateGroupConfig`, reordering/move helpers, and `setGroups`.
 
 ```tsx
 import { useConditionalOutput } from "react-conditional-ui";
@@ -143,6 +220,12 @@ mutations.addGroup(parsedGroup);
 ## Styling
 
 All components accept `className` and `style` props. Internal elements use `rcui-*` CSS classes that can be overridden.
+
+## Error handling
+
+- Parsing/validation issues are exposed as `Diagnostic[]` (`start`, `end`, `message`) via `useConditionalInput` and controlled `<Input />` mode.
+- Managed input submit is fail-safe: invalid conditions are not emitted via `onSubmit`; diagnostics are shown instead.
+- Use `useConditionDataProvider().diagnose(text)` when building custom UIs and `FieldOption.validateValue` for field-specific validation rules.
 
 ## Debug logging
 
@@ -162,15 +245,6 @@ DEBUG=react-conditional-ui:* node app.js
 ```
 
 Available namespaces: `parser`, `match-engine`.
-
-## Tech debt
-
-- `matchOperator` hard word-count gate should be a scoring penalty instead
-- `match-engine.ts` mixes fuzzy matching with parsing logic (`parse`, `identifyField`, `resolveOperator`, `getOperatorCandidates`) — extract parsing into its own module
-- `SegmentResolver.resolve` is ~80 lines with deep nesting — break down into smaller functions
-- `SuggestionsProvider.completionsForSegment` is ~80 lines with repetitive branching — simplify
-- `stripLeadingNoise` + `NOISE_WORDS` in `word-utils.ts` is domain-specific, not a word utility
-- `segments.ts` line 1: `import { log } from "debug"` is wrong — `debug` default-exports a factory
 
 ## Local development
 

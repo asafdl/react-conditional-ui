@@ -1,6 +1,6 @@
 import { log } from "debug";
-import { ParsedCondition, LogicalOperator, ConditionEntry, ConditionGroup } from "../types";
-import { scoreConditions } from "./score";
+import type { ParsedCondition, LogicalOperator, ConditionEntry, ConditionGroup } from "../types";
+import { scoreConditions, type ScoredCondition } from "./score";
 import { powerSet, splitAtIndices } from "./word-utils";
 import { AND_CONJUNCTION, OR_CONJUNCTION } from "../consts";
 import { generateId } from "../id";
@@ -8,7 +8,7 @@ import { ConditionParser } from "../conditions/parser";
 
 type SplitCandidate = {
     segments: string[];
-    conditions: ParsedCondition[];
+    conditions: ScoredCondition[];
     connector: LogicalOperator;
 };
 
@@ -19,7 +19,7 @@ export class SegmentResolver {
 
     public resolve(text: string): {
         segments: string[];
-        conditions: ParsedCondition[];
+        conditions: ScoredCondition[];
         connector: LogicalOperator;
     } {
         const originalWords = text.split(/\s+/);
@@ -57,17 +57,19 @@ export class SegmentResolver {
         const { conditions, connector } = this.resolve(input);
         if (conditions.length === 0) return null;
 
-        const entries: ConditionEntry[] = conditions.map((condition: ParsedCondition) => ({
-            id: generateId(),
-            condition,
-            connector,
-        }));
+        const entries: ConditionEntry[] = conditions.map(
+            ({ score: _score, ...condition }): ConditionEntry => ({
+                id: generateId(),
+                condition,
+                connector,
+            }),
+        );
 
         return { id: generateId(), entries };
     }
 
-    private parseSegments(segments: string[]): ParsedCondition[] {
-        const conditions: ParsedCondition[] = [];
+    private parseSegments(segments: string[]): ScoredCondition[] {
+        const conditions: ScoredCondition[] = [];
         for (const segment of segments) {
             const previous = conditions[conditions.length - 1] ?? null;
             const result = this.getInherited(segment, previous) ?? this.parser.parse(segment);
@@ -80,7 +82,7 @@ export class SegmentResolver {
         const parsed = this.parser.parse(text);
         return {
             segments: [text],
-            conditions: parsed ? [parsed] : [],
+            conditions: parsed ? [parsed] : ([] as ScoredCondition[]),
             connector: AND_CONJUNCTION,
         };
     }
@@ -151,8 +153,8 @@ export class SegmentResolver {
 
     private getInherited(
         segment: string,
-        previous: ParsedCondition | null,
-    ): ParsedCondition | null {
+        previous: ScoredCondition | null,
+    ): ScoredCondition | null {
         if (!previous) return null;
 
         const direct = this.parser.parse(segment);

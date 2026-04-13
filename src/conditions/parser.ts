@@ -1,4 +1,5 @@
-import type { FieldOption, ParsedCondition } from "../types";
+import type { FieldOption } from "../types";
+import type { ScoredCondition } from "../fuzzy/score";
 import { createLogger } from "../logger";
 import { Operator, Value, Field } from "../condition-structure";
 import { stripLeadingNoise } from "../fuzzy/word-utils";
@@ -15,7 +16,7 @@ export class ConditionParser {
             queryHelper ?? new ConditionQueryHelper(engine, engine.fields, engine.operators);
     }
 
-    public parse(text: string): ParsedCondition | null {
+    public parse(text: string): ScoredCondition | null {
         const input = text.trim().toLowerCase();
         if (!input) return null;
 
@@ -44,7 +45,7 @@ export class ConditionParser {
             fieldResult.fieldOption,
         );
 
-        const result: ParsedCondition = {
+        const result: ScoredCondition = {
             field: new Field(
                 fieldResult.raw,
                 fieldResult.fieldOption.value,

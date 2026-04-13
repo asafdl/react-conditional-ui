@@ -14,7 +14,6 @@ function cond(
         field: new Field(field, field, fieldLabel),
         operator: new Operator(opLabel, opValue, opLabel),
         value: new Value(val),
-        score: 0,
     };
 }
 

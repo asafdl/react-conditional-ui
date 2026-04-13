@@ -23,7 +23,6 @@ export type ParsedCondition = {
     field: Field;
     operator: Operator;
     value: Value;
-    score: number;
 };
 
 export type LogicalOperator = "and" | "or";
