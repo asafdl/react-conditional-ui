@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/asafdl/react-conditional-ui/compare/v1.2.2...v1.2.3) (2026-04-13)
+
+
+### Bug Fixes
+
+* better suited readme ([e721e52](https://github.com/asafdl/react-conditional-ui/commit/e721e52432df2cb439210be579fd0d30ff3a230d))
+
 ## [1.2.2](https://github.com/asafdl/react-conditional-ui/compare/v1.2.1...v1.2.2) (2026-04-13)
 
 
