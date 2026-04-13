@@ -1,6 +1,6 @@
 {
     "name": "react-conditional-ui",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "description": "A React component for building conditions using natural language input",
     "type": "module",
     "main": "./dist/index.cjs",

@@ -1,3 +1,11 @@
+## [1.2.2](https://github.com/asafdl/react-conditional-ui/compare/v1.2.1...v1.2.2) (2026-04-13)
+
+
+### Bug Fixes
+
+* package json keywords ([3e5075e](https://github.com/asafdl/react-conditional-ui/commit/3e5075e71eaf06efaf566746879b35c5db798468))
+* package keywords ([ee0859b](https://github.com/asafdl/react-conditional-ui/commit/ee0859bceac4dd1b1f8b8b9f46304026cd4d59ad))
+
 ## [1.2.1](https://github.com/asafdl/react-conditional-ui/compare/v1.2.0...v1.2.1) (2026-04-12)
 
 
