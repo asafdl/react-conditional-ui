@@ -1,7 +1,3 @@
-<div align="left">
-  <img src="logo.png" alt="react-conditional-ui logo" width="380" />
-</div>
-
 [![CI](https://github.com/asafdl/react-conditional-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/asafdl/react-conditional-ui/actions/workflows/ci.yml)
 [![Release](https://github.com/asafdl/react-conditional-ui/actions/workflows/release.yml/badge.svg)](https://github.com/asafdl/react-conditional-ui/actions/workflows/release.yml)
 [![npm](https://img.shields.io/npm/v/react-conditional-ui)](https://www.npmjs.com/package/react-conditional-ui)
@@ -9,6 +5,9 @@
 ![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
+<div align="left">
+  <img src="logo.png" alt="react-conditional-ui logo" width="380" />
+</div>
 React component library for building conditions via natural language input. Users type plain-English phrases (e.g. "status is active") instead of filling out combo boxes. A fuzzy parser resolves fields, operators, and values, with support for compound `AND`/`OR` conditions and drag-and-drop grouping.
 
 **[Live Demo](https://asafdl.github.io/react-conditional-ui/)**
