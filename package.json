@@ -89,7 +89,13 @@
         "fuzzy-search",
         "drag-drop",
         "mui",
-        "material-ui"
+        "material-ui",
+        "visual-logic",
+        "rule-engine",
+        "filter-builder",
+        "json-logic",
+        "admin-ui",
+        "no-code"
     ],
     "repository": {
         "type": "git",
